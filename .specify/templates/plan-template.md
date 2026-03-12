@@ -31,7 +31,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Confirm the design preserves strict Database -> MCP Server -> Flask Web Server layering.
+- Confirm Flask-to-MCP interactions use HTTP contracts only (JSON-RPC and/or SSE), with no
+  direct database or in-process shortcut.
+- Confirm SQLAlchemy usage is confined to the MCP server tier.
+- Confirm the work is sliced into a reviewable chunk and identifies the first independently
+  demonstrable increment.
+- Confirm graph-schema impact on Workflow, Node, Edge, Node2Edge, NodeType, EdgeType, and
+  EdgeNoteTypeMap is documented when relevant.
+- Confirm environment variables, external-source citations, and README or docs updates are
+  planned when the change affects them.
 
 ## Project Structure
 
@@ -68,20 +77,24 @@ tests/
 ├── integration/
 └── unit/
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
+# [REMOVE IF UNUSED] Option 2: Three-tier web application
+mcp_server/
 ├── src/
+│   ├── api/
+│   ├── tools/
 │   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
 │   └── services/
 └── tests/
+
+flask_web/
+├── src/
+│   ├── routes/
+│   ├── templates/
+│   └── clients/
+└── tests/
+
+database/
+└── [schema, migrations, seed assets as applicable]
 
 # [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
 api/

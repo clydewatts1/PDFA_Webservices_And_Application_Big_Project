@@ -37,3 +37,22 @@ https://github.com/github/spec-kit
 __Installation__
 
 specify init .
+
+## Constitutional Baseline
+
+The project is governed by the constitution in .specify/memory/constitution.md.
+
+- Architecture is fixed to Database -> MCP Server -> Flask Web Server.
+- Flask must talk to MCP exclusively over HTTP using JSON-RPC and/or SSE.
+- SQLAlchemy is permitted only inside the MCP server layer.
+- Delivery proceeds in small chunks, starting with workflow table maintenance.
+- Development history must remain visible through meaningful Git commits.
+
+## Documentation and Source Attribution
+
+The final hand-up must include a comprehensive README that explains setup, architecture,
+environment variables, and the staged delivery process.
+
+All external sources used during development, including AI prompts, architectural research,
+and Spec Kit usage, must be cited in project documentation so the development process is
+auditable.

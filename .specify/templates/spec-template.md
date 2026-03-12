@@ -100,6 +100,19 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+### Constitutional Constraints *(mandatory when applicable)*
+
+- Identify which layer or layers are affected and explain how Database -> MCP Server -> Flask
+  Web Server boundaries remain intact.
+- Describe any MCP contract additions or changes, including whether the interaction is
+  JSON-RPC, SSE, or both.
+- If the feature touches persistence, state how SQLAlchemy remains confined to the MCP server
+  and how graph integrity is preserved across Workflow, Node, Edge, Node2Edge, NodeType,
+  EdgeType, and EdgeNoteTypeMap.
+- List required environment variables or configuration changes.
+- Record external sources, AI prompts, and Spec Kit guidance referenced while producing the
+  feature materials.
+
 ## Success Criteria *(mandatory)*
 
 <!--

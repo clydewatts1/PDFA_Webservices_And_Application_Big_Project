@@ -21,7 +21,7 @@ description: "Task list template for feature implementation"
 ## Path Conventions
 
 - **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
+- **Three-tier web app**: `mcp_server/src/`, `flask_web/src/`, `database/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
 - Paths shown below assume single project - adjust based on plan.md structure
 
@@ -62,12 +62,13 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Setup database schema and migrations framework in the MCP-owned data layer
+- [ ] T005 [P] Define MCP HTTP contracts (JSON-RPC/SSE) needed for the first delivery chunk
+- [ ] T006 [P] Setup MCP routing, tool handlers, and Flask client integration boundaries
+- [ ] T007 Create graph models and relationships for Workflow, Node, Edge, Node2Edge,
+  NodeType, EdgeType, and EdgeNoteTypeMap
+- [ ] T008 Configure error handling and logging infrastructure across Flask and MCP tiers
+- [ ] T009 Setup environment configuration management for database credentials and service URLs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -155,6 +156,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
+- [ ] TXXX Update README and source-attribution documentation for external references and AI usage
 - [ ] TXXX Run quickstart.md validation
 
 ---
@@ -246,6 +248,6 @@ With multiple developers:
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing
-- Commit after each task or logical group
+- Commit after each task or logical group so the development process is visible in Git history
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
