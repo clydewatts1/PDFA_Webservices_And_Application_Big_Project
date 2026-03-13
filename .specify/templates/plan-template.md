@@ -37,10 +37,11 @@
 - Confirm SQLAlchemy usage is confined to the MCP server tier.
 - Confirm the work is sliced into a reviewable chunk and identifies the first independently
   demonstrable increment.
-- Confirm graph-schema impact on Workflow, Node, Edge, Node2Edge, NodeType, EdgeType, and
-  EdgeNoteTypeMap is documented when relevant.
-- Confirm environment variables, external-source citations, and README or docs updates are
-  planned when the change affects them.
+- Confirm workflow-schema impact on Workflow, Role, Interaction, Guard,
+  InteractionComponent, UnitOfWork, and Instance is documented when relevant.
+- Confirm environment variables, external-source citations, README updates, directory-level
+  README updates where applicable, and docstring/comment expectations are planned when the
+  change affects them.
 
 ## Project Structure
 

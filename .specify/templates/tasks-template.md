@@ -65,8 +65,8 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T004 Setup database schema and migrations framework in the MCP-owned data layer
 - [ ] T005 [P] Define MCP HTTP contracts (JSON-RPC/SSE) needed for the first delivery chunk
 - [ ] T006 [P] Setup MCP routing, tool handlers, and Flask client integration boundaries
-- [ ] T007 Create graph models and relationships for Workflow, Node, Edge, Node2Edge,
-  NodeType, EdgeType, and EdgeNoteTypeMap
+- [ ] T007 Create models and relationships for Workflow, Role, Interaction, Guard,
+  InteractionComponent, UnitOfWork, and Instance
 - [ ] T008 Configure error handling and logging infrastructure across Flask and MCP tiers
 - [ ] T009 Setup environment configuration management for database credentials and service URLs
 
@@ -156,7 +156,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
-- [ ] TXXX Update README and source-attribution documentation for external references and AI usage
+- [ ] TXXX Update README, directory-level README files where applicable, and source-attribution documentation for external references and AI usage
 - [ ] TXXX Run quickstart.md validation
 
 ---

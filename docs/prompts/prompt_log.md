@@ -1,0 +1,42 @@
+# Prompt Log
+
+Purpose: Track all AI prompts used in this project for traceability, review, and final source attribution.
+
+## Usage Rules
+- Add one entry per meaningful prompt interaction.
+- Keep the raw prompt text or a clear summary.
+- Link outputs to files changed so reviewers can trace impact.
+- Update this log in the same commit as related changes when possible.
+
+## Session Logging Mode
+- Status: ENABLED (as of 2026-03-13)
+- Scope: This active chat window/session
+- Behavior: Append a new prompt-log entry for each meaningful user prompt that leads to decisions, artifact changes, or validation activity.
+
+## Prompt Entries
+
+| ID | Date (UTC) | Tool/Model | Phase | Prompt Summary | Input Files | Output Files | Decision/Outcome | Notes |
+|---|---|---|---|---|---|---|---|---|
+| PRM-001 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Constitution | Create project constitution with 3-tier architecture and MCP/SQLAlchemy constraints | README.md, docs/prompts/specification_01.md | .specify/memory/constitution.md, .specify/templates/* | Constitution v1.0.0 ratified, later amended to 1.1.0 | Include amendment rationale in notes |
+| PRM-002 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Specify/Clarify | Define seven-table workflow schema behavior and clarifications | specs/001-define-workflow-tables/spec.md | specs/001-define-workflow-tables/spec.md | Clarified replication, keys, JSON-RPC scope, lifecycle rules | See Clarifications section in spec |
+| PRM-003 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Plan | Build temporary application plan with object-creation tests | specs/001-define-workflow-tables/spec.md | specs/001-define-workflow-tables/plan.md, research.md, data-model.md, quickstart.md, contracts/mcp-jsonrpc.md | Plan and design artifacts generated | |
+| PRM-004 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Checklist | Generate requirements-quality checklist and assess gaps | spec.md, plan.md, tasks.md | specs/001-define-workflow-tables/checklists/schema.md | Checklist progressed to 17 passed, 0 gaps | |
+| PRM-005 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Process/Traceability | Enable prompt auto-log for this chat window | docs/prompts/prompt_log.md | docs/prompts/prompt_log.md | Auto-log enabled for active session | Tracks meaningful prompts and outcomes |
+| PRM-006 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Implement | Execute Phase 1 tasks T001-T004 (folders, dependencies, lint/format/pytest config, env example) | specs/001-define-workflow-tables/tasks.md, specs/001-define-workflow-tables/spec.md | mcp_server/, flask_web/, database/, requirements.txt, requirements-dev.txt, pyproject.toml, .env.example, specs/001-define-workflow-tables/tasks.md | Phase 1 setup tasks completed and marked done | Checklist gate passed before implementation |
+| PRM-007 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Implement | Execute Phase 2 tasks T005-T010 (base model/mixin, migration baseline, object factory skeleton, JSON-RPC envelope, Flask MCP client, validations) | specs/001-define-workflow-tables/tasks.md, specs/001-define-workflow-tables/spec.md | mcp_server/src/models/base.py, database/migrations/*, mcp_server/src/lib/object_factory.py, mcp_server/src/api/app.py, flask_web/src/clients/mcp_client.py, mcp_server/src/services/validation.py, specs/001-define-workflow-tables/tasks.md | Phase 2 foundational tasks completed and marked done; dependencies installed and imports validated | Alembic baseline created for current/history tables |
+| PRM-008 | 2026-03-13 | GitHub Copilot (Claude Sonnet 4.6) | Implement | Execute Phase 3 tasks T011-T017 (User Story 1: Workflow with history; TDD approach — tests first then implementation) | specs/001-define-workflow-tables/tasks.md, data-model.md, contracts/mcp-jsonrpc.md, plan.md | mcp_server/tests/unit/test_object_factory_workflow.py, mcp_server/tests/contract/test_workflow_contract.py, mcp_server/tests/integration/test_workflow_e2e.py, mcp_server/src/models/workflow.py, mcp_server/src/db/session.py, mcp_server/src/services/workflow_service.py, mcp_server/src/api/handlers/workflow_handlers.py, mcp_server/src/lib/object_factory.py (updated), flask_web/src/routes/workflow.py, database/migrations/versions/0001_current_history_tables.py (surrogate PK), specs/001-define-workflow-tables/tasks.md | Phase 3 complete: 41/41 tests pass; temporal semantics (active-row invariant, history copy on update/delete, soft-delete) verified | Surrogate id PK added to all tables in migration; object_factory.build_workflow gains effective_from kwarg |
+| PRM-009 | 2026-03-13 | GitHub Copilot (Claude Sonnet 4.6) | Implement | Execute Phase 4 tasks T018-T024 (User Story 2: Role, Interaction, Guard, InteractionComponent, UnitOfWork with history; generic CRUD service; FK validation) | specs/001-define-workflow-tables/tasks.md, data-model.md, contracts/mcp-jsonrpc.md | mcp_server/src/models/dependent.py, mcp_server/src/services/dependent_service.py, mcp_server/src/api/handlers/dependent_handlers.py, flask_web/src/routes/dependent.py, mcp_server/src/lib/object_factory.py (full signatures), mcp_server/tests/unit/test_object_factory_dependent_entities.py, mcp_server/tests/contract/test_dependent_entities_contract.py, mcp_server/tests/integration/test_dependent_entities_integrity.py, specs/001-define-workflow-tables/tasks.md | Phase 4 complete: 99/99 tests pass; generic EntityConfig service handles all 5 entity types; FK validation against active workflow enforced; UnitOfWork correctly excluded from FK checks | Generic make_entity_handlers() factory produces all 5 JSON-RPC method sets from a single config |
+| PRM-010 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Implement | Execute Phase 5 tasks T025-T031 (instance creation/state transitions with transactional replication and instance-scoped dependent rows) | specs/001-define-workflow-tables/tasks.md, specs/001-define-workflow-tables/spec.md, contracts/mcp-jsonrpc.md | mcp_server/src/models/instance.py, mcp_server/src/services/instance_service.py, mcp_server/src/api/handlers/instance_handlers.py, flask_web/src/routes/instance.py, mcp_server/src/models/dependent.py (InstanceName scoping), mcp_server/src/services/dependent_service.py (InstanceName field map), mcp_server/src/services/validation.py (instance-state validator), mcp_server/src/lib/object_factory.py (state transition helper), mcp_server/tests/unit/test_object_factory_instance.py, mcp_server/tests/contract/test_instance_contract.py, mcp_server/tests/integration/test_instance_replication_e2e.py, database/migrations/versions/0001_current_history_tables.py, specs/001-define-workflow-tables/tasks.md | Phase 5 complete: 122/122 tests pass; instance.create replicates Role/Interaction/Guard/InteractionComponent, excludes UnitOfWork, and rolls back on replication failure | Replicated dependent rows now carry nullable InstanceName for fixed-table instance scoping |
+| PRM-011 | 2026-03-13 | GitHub Copilot (GPT-5.3-Codex) | Polish | Execute Phase 6 tasks T032-T035 (structured logging/error mapping consistency, README runbook, source attribution, full-suite evidence capture) | specs/001-define-workflow-tables/tasks.md, README.md, docs/prompts/prompt_log.md | mcp_server/src/api/app.py, flask_web/src/clients/mcp_client.py, flask_web/src/app.py, README.md, docs/source_attribution.md, docs/test_evidence.md, specs/001-define-workflow-tables/tasks.md | Phase 6 complete: logging/error handling normalized across MCP/Flask; hand-up docs completed; full test run captured at 122 passed | Remaining warnings are datetime.utcnow deprecations and do not affect pass/fail |
+
+## Optional Detailed Entry Template
+
+### PRM-XXX
+- Date:
+- Tool/Model:
+- User Prompt (raw or summarized):
+- Context Files:
+- Artifacts Changed:
+- Key Decisions:
+- Validation Performed:
+- Follow-up Actions:

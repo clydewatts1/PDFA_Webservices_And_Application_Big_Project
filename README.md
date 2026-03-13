@@ -53,6 +53,73 @@ The project is governed by the constitution in .specify/memory/constitution.md.
 The final hand-up must include a comprehensive README that explains setup, architecture,
 environment variables, and the staged delivery process.
 
+Major directories must also include supplementary README files that explain their local
+architecture and responsibilities in the overall three-tier design.
+
 All external sources used during development, including AI prompts, architectural research,
 and Spec Kit usage, must be cited in project documentation so the development process is
 auditable.
+
+## Temporary App Setup / Run / Test
+
+### 1) Create and activate virtual environment
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2) Install dependencies
+
+```powershell
+pip install -r requirements-dev.txt
+```
+
+### 3) Configure environment
+
+Create `.env` at repository root:
+
+```env
+DB_URL=sqlite:///./local.db
+DEFAULT_ACTOR=local_dev
+MCP_BASE_URL=http://127.0.0.1:5001
+FLASK_HOST=127.0.0.1
+FLASK_PORT=5000
+```
+
+### 4) Run migrations
+
+```powershell
+alembic upgrade head
+```
+
+### 5) Start MCP server (terminal 1)
+
+```powershell
+python -m mcp_server.src.api.app
+```
+
+### 6) Start Flask web app (terminal 2)
+
+```powershell
+python -m flask_web.src.app
+```
+
+### 7) Run tests
+
+```powershell
+pytest mcp_server/tests/ -v --tb=short
+```
+
+## Logging and Error Mapping (Phase 6)
+
+- MCP JSON-RPC endpoint now emits structured log events (`mcp.request.*`) including method, request id, and duration.
+- Flask MCP client emits structured completion events (`flask.mcp.call.completed`).
+- MCP JSON-RPC errors are preserved by Flask client as `MCPClientError(code, message, data)`.
+- Flask app includes a centralized `MCPClientError` handler returning normalized JSON error payloads.
+
+## Hand-up Evidence
+
+- Prompt traceability: `docs/prompts/prompt_log.md`
+- External source attribution: `docs/source_attribution.md`
+- Test execution evidence: `docs/test_evidence.md`
