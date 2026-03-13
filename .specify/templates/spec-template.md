@@ -107,11 +107,12 @@
 - Describe any MCP contract additions or changes, including whether the interaction is
   JSON-RPC, SSE, or both.
 - If the feature touches persistence, state how SQLAlchemy remains confined to the MCP server
-  and how graph integrity is preserved across Workflow, Node, Edge, Node2Edge, NodeType,
-  EdgeType, and EdgeNoteTypeMap.
+  and how workflow schema integrity is preserved across Workflow, Role, Interaction, Guard,
+  InteractionComponent, UnitOfWork, and Instance.
 - List required environment variables or configuration changes.
 - Record external sources, AI prompts, and Spec Kit guidance referenced while producing the
-  feature materials.
+  feature materials, and note any README or directory-level README expectations triggered by
+  the feature.
 
 ## Success Criteria *(mandatory)*
 

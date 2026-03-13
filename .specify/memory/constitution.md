@@ -1,15 +1,10 @@
 <!--
 Sync Impact Report
-Version change: template -> 1.0.0
+Version change: 1.1.0 -> 1.2.0
 Modified principles:
-- [PRINCIPLE_1_NAME] -> I. Strict Three-Tier Architecture
-- [PRINCIPLE_2_NAME] -> II. HTTP-Only MCP Communication
-- [PRINCIPLE_3_NAME] -> III. SQLAlchemy Containment and Data Access Encapsulation
-- [PRINCIPLE_4_NAME] -> IV. Incremental Graph-Model Delivery
-- [PRINCIPLE_5_NAME] -> V. Traceable Academic-Quality Delivery
+- V. Traceable Academic-Quality Delivery (expanded documentation and traceability rules)
 Added sections:
-- Architecture and Data Standards
-- Development Workflow and Quality Gates
+- None
 Removed sections:
 - None
 Templates requiring updates:
@@ -51,20 +46,24 @@ leaky abstractions and keeps the data contract enforceable.
 
 ### IV. Incremental Graph-Model Delivery
 Implementation MUST proceed in small, reviewable chunks, beginning with workflow table
-maintenance before broader graph behaviors. The persisted graph model MUST support the
-seven-table schema of Workflow, Node, Edge, Node2Edge, NodeType, EdgeType, and
-EdgeNoteTypeMap, and MUST preserve relational integrity through explicit SQLAlchemy
-relationships, foreign keys, and domain constraints. Features that alter the graph model
+maintenance before broader workflow behaviors. The persisted domain model MUST support the
+seven-table schema of Workflow, Role, Interaction, Guard, InteractionComponent, UnitOfWork,
+and Instance, and MUST preserve relational integrity through explicit SQLAlchemy
+relationships, foreign keys, and domain constraints. Features that alter the domain model
 MUST describe their impact on this schema before implementation. Rationale: incremental,
 schema-aware delivery reduces rework and makes integrity failures visible early.
 
 ### V. Traceable Academic-Quality Delivery
 Every meaningful development interaction MUST be traceable in Git commit history so the
-project evolution is demonstrable to the instructor. Code MUST remain clean, PEP 8
-compliant, and free of unnecessary commentary. The final submission MUST include a
-comprehensive README, and all external sources, including AI prompts, architectural input,
-and Spec Kit usage, MUST be cited in project documentation. Rationale: this project is
-evaluated on both technical correctness and the clarity of the development process.
+project evolution is demonstrable to the instructor. Code MUST remain clean and PEP 8
+compliant. Standard Python module-level and function-level docstrings MUST be used to
+explain the purpose of custom business logic, but inline comments and commentary on
+standard framework boilerplate (like Alembic migrations) are strictly prohibited to avoid
+over-commenting. The final submission MUST include a comprehensive README, with
+supplementary README files in each major directory explaining local architecture. All
+external sources, including AI prompts, architectural input, and Spec Kit usage, MUST be
+cited. Rationale: this project is evaluated on both technical correctness and the clarity
+of the development process, balancing human readability with strict grading rubrics.
 
 ## Architecture and Data Standards
 
@@ -72,7 +71,7 @@ evaluated on both technical correctness and the clarity of the development proce
 	Flask server URLs, secrets, and similar deployment values MUST be supplied through
 	environment variables, including a local .env workflow where appropriate.
 - The MCP server MUST own SQLAlchemy models, session handling, migrations, and relationship
-	enforcement for the seven-table graph schema.
+	enforcement for the seven-table workflow schema.
 - The Flask web server MUST treat MCP responses as its system of record for data access and
 	MUST NOT mirror persistence logic locally.
 - Any feature that changes schema shape, HTTP contracts, or event streams MUST update the
@@ -83,9 +82,9 @@ evaluated on both technical correctness and the clarity of the development proce
 
 - Work MUST be planned and implemented as discrete chunks with an independently reviewable
 	outcome. Initial chunking MUST start with workflow table maintenance, then expand to the
-	remaining graph entities and interactions.
+	remaining workflow entities and interactions.
 - Each feature specification and implementation plan MUST state which layer is affected,
-	which MCP contracts are added or changed, whether graph integrity rules are impacted, and
+	which MCP contracts are added or changed, whether schema integrity rules are impacted, and
 	which environment variables or deployment settings are required.
 - Reviews MUST reject any change that breaks the three-tier boundary, introduces direct
 	database access outside MCP, omits required documentation for external sources, or leaves
@@ -105,12 +104,14 @@ task, and implementation review time.
 Versioning policy follows semantic versioning for governance documents: MAJOR for
 backward-incompatible principle removals or redefinitions, MINOR for new principles or
 materially expanded sections, and PATCH for clarifications that do not alter required
-behavior. Because this file establishes the project's first ratified constitution from an
-unfilled template, this release is version 1.0.0.
+behavior. This amendment materially expands delivery and documentation requirements around
+docstrings, over-commenting limits, and supplementary directory-level READMEs, and is
+therefore released as version 1.2.0.
 
 Every implementation review MUST verify that the current work respects the Database -> MCP
 Server -> Flask Web Server boundary, preserves MCP-over-HTTP communication, keeps
-SQLAlchemy confined to the MCP tier, maintains seven-table graph integrity where relevant,
-documents environment variables, and records external-source attribution.
+SQLAlchemy confined to the MCP tier, maintains seven-table workflow schema integrity where
+relevant, documents environment variables, records external-source attribution, and
+follows the project's docstring and README requirements.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-12
+**Version**: 1.2.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-13
