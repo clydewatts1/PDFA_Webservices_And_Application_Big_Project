@@ -27,3 +27,22 @@ This run includes test suites for:
 ```text
 ====================== 122 passed, 240 warnings in 8.63s ======================
 ```
+
+## MCP Milestone 003 Verification Evidence
+
+- Configuration file used: `WB-Workflow-Configuration.yaml`
+- Required inspector command: `npx @modelcontextprotocol/inspector`
+- Manual database verification path: SQLite CLI (`sqlite3`) with optional PostgreSQL (`psql`) equivalents.
+
+### Evidence Capture Template
+
+- Date/time:
+- Environment (`DB_URL`, `MCP_CONFIG_PATH`):
+- Inspector checks completed:
+	- get_system_health:
+	- user_logon (success/denied/error):
+	- user_logoff:
+	- CRUD checks (workflow/role/interaction/guard/interaction_component):
+- Manual SQLite query outputs:
+- Optional PostgreSQL query outputs:
+- Open issues:

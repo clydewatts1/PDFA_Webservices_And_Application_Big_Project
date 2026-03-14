@@ -77,3 +77,7 @@ Generic Inputs: [table]_name ( primary key) (Required), updates (Required dictio
 Description: "Permanently removes an existing [table] record from the database. You MUST provide the exact primary key ID of the record you wish to delete. Returns a success confirmation."
 
 Generic Inputs: [table]_name ( primary key) (Required).
+
+
+Testing.
+Add a test document describing instructions on configuring MCP server and database and how to test. Please include npx instructions. Include manual instruction on how to query the database and tables directly for manual verification

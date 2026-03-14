@@ -48,3 +48,10 @@ This project records external assistance and references used during design and i
   - `mcp_server/README.md`
   - `flask_web/README.md`
 - Compliance evidence artifacts: `specs/002-milestone2-section-v/artifacts/`
+
+## MCP Milestone Configuration/Test Sources
+
+- Specification source: `specs/003-mcp-server-setup-tests/spec.md`
+- Implementation plan source: `specs/003-mcp-server-setup-tests/plan.md`
+- Contract source: `specs/003-mcp-server-setup-tests/contracts/mcp-milestone-tooling.md`
+- Runbook source: `docs/mcp_milestone_test_guide.md`
