@@ -1,0 +1,40 @@
+server_name: WB-Workflow-Configuration
+resources:
+  database:
+    provider: sqlalchemy
+    source: ${DB_URL}
+  runtime:
+    protocol: json-rpc
+    endpoint: /rpc
+tools:
+  - get_system_health
+  - user_logon
+  - user_logoff
+  - workflow.create
+  - workflow.get
+  - workflow.list
+  - workflow.update
+  - workflow.delete
+  - role.create
+  - role.get
+  - role.list
+  - role.update
+  - role.delete
+  - interaction.create
+  - interaction.get
+  - interaction.list
+  - interaction.update
+  - interaction.delete
+  - guard.create
+  - guard.get
+  - guard.list
+  - guard.update
+  - guard.delete
+  - interaction_component.create
+  - interaction_component.get
+  - interaction_component.list
+  - interaction_component.update
+  - interaction_component.delete
+mock_users:
+  reviewer: reviewer_pass
+  test_user: test_pass

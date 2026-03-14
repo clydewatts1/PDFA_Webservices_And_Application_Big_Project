@@ -14,6 +14,7 @@ from typing import Any, Callable
 from sqlalchemy.orm import sessionmaker
 
 from mcp_server.src.api.app import JsonRpcError
+from mcp_server.src.lib.tool_result import attach_success_metadata
 from mcp_server.src.services.workflow_service import (
     ServiceError,
     MissingFieldError,
@@ -56,7 +57,10 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return create_workflow(session, params, actor)
+                return attach_success_metadata(
+                    create_workflow(session, params, actor),
+                    status_message="workflow.create completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -64,7 +68,10 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return update_workflow(session, params, actor)
+                return attach_success_metadata(
+                    update_workflow(session, params, actor),
+                    status_message="workflow.update completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -74,13 +81,19 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
             raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "WorkflowName"})
         try:
             with session_factory() as session:
-                return get_workflow(session, workflow_name)
+                return attach_success_metadata(
+                    get_workflow(session, workflow_name),
+                    status_message="workflow.get completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
     def _workflow_list(params: dict[str, Any]) -> dict[str, Any]:
         with session_factory() as session:
-            return {"workflows": list_workflows(session)}
+            return attach_success_metadata(
+                {"workflows": list_workflows(session)},
+                status_message="workflow.list completed",
+            )
 
     def _workflow_delete(params: dict[str, Any]) -> dict[str, Any]:
         actor = _extract_actor(params)
@@ -89,7 +102,10 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
             raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "WorkflowName"})
         try:
             with session_factory() as session:
-                return delete_workflow(session, workflow_name, actor)
+                return attach_success_metadata(
+                    delete_workflow(session, workflow_name, actor),
+                    status_message="workflow.delete completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 

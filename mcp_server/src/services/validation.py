@@ -40,3 +40,19 @@ def is_active_row(delete_ind: int, eff_to: datetime) -> bool:
     """Return True when row values match active-row semantics."""
 
     return delete_ind == 0 and eff_to == HIGH_DATE_LITERAL
+
+
+def validate_mcp_config(config: dict[str, object]) -> None:
+    """Validate required MCP runtime configuration sections."""
+
+    server_name = config.get("server_name")
+    if not isinstance(server_name, str) or not server_name.strip():
+        raise ValidationError("server_name is required in MCP configuration", code="missing_server_name")
+
+    tools = config.get("tools")
+    if not isinstance(tools, list) or not tools:
+        raise ValidationError("tools list is required in MCP configuration", code="missing_tools")
+
+    mock_users = config.get("mock_users")
+    if not isinstance(mock_users, dict) or not mock_users:
+        raise ValidationError("mock_users map is required in MCP configuration", code="missing_mock_users")
