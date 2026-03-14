@@ -14,6 +14,7 @@ from typing import Any, Callable
 from sqlalchemy.orm import sessionmaker
 
 from mcp_server.src.api.app import JsonRpcError
+from mcp_server.src.lib.tool_result import attach_success_metadata
 from mcp_server.src.services.dependent_service import (
     GUARD_CONFIG,
     INTERACTION_COMPONENT_CONFIG,
@@ -78,7 +79,10 @@ def make_entity_handlers(
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return create_entity(session, config, params, actor)
+                return attach_success_metadata(
+                    create_entity(session, config, params, actor),
+                    status_message=f"{prefix}.create completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -86,7 +90,10 @@ def make_entity_handlers(
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return update_entity(session, config, params, actor)
+                return attach_success_metadata(
+                    update_entity(session, config, params, actor),
+                    status_message=f"{prefix}.update completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -103,7 +110,10 @@ def make_entity_handlers(
             bk[k] = v
         try:
             with session_factory() as session:
-                return get_entity(session, config, bk)
+                return attach_success_metadata(
+                    get_entity(session, config, bk),
+                    status_message=f"{prefix}.get completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -112,7 +122,10 @@ def make_entity_handlers(
         if config.requires_workflow_fk and params.get("WorkflowName"):
             filters = {"WorkflowName": params["WorkflowName"]}
         with session_factory() as session:
-            return {f"{prefix}s": list_entities(session, config, filters)}
+            return attach_success_metadata(
+                {f"{prefix}s": list_entities(session, config, filters)},
+                status_message=f"{prefix}.list completed",
+            )
 
     def _delete(params: dict[str, Any]) -> dict[str, Any]:
         actor = _extract_actor(params)
@@ -128,7 +141,10 @@ def make_entity_handlers(
             bk[k] = v
         try:
             with session_factory() as session:
-                return delete_entity(session, config, bk, actor)
+                return attach_success_metadata(
+                    delete_entity(session, config, bk, actor),
+                    status_message=f"{prefix}.delete completed",
+                )
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 

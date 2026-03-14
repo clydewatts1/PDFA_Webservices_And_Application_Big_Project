@@ -93,6 +93,10 @@ FLASK_HOST=127.0.0.1
 FLASK_PORT=5000
 ```
 
+Milestone MCP configuration is loaded from canonical file:
+
+- `WB-Workflow-Configuration.yaml`
+
 ### 4) Run migrations
 
 ```powershell
@@ -129,4 +133,5 @@ pytest mcp_server/tests/ -v --tb=short
 - Prompt traceability: `docs/prompts/prompt_log.md`
 - External source attribution: `docs/source_attribution.md`
 - Test execution evidence: `docs/test_evidence.md`
+- MCP milestone test runbook: `docs/mcp_milestone_test_guide.md`
 - Section V compliance artifacts: `specs/002-milestone2-section-v/artifacts/`

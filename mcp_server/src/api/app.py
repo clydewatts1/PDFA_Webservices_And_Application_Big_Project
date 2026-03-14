@@ -5,10 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import logging
+import os
 import time
 from typing import Any, Callable
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+
+from mcp_server.src.db.session import make_session_factory
+from mcp_server.src.lib.mcp_config import ConfigError, get_mock_user_map, load_mcp_config
+from mcp_server.src.services.validation import ValidationError, validate_mcp_config
 
 
 logger = logging.getLogger("pdfa.mcp")
@@ -144,4 +150,48 @@ def create_app() -> Flask:
     return app
 
 
+def register_runtime_handlers(app: Flask, mock_users: dict[str, str]) -> None:
+    """Register workflow/dependent/instance/system handlers for runtime app."""
+
+    from mcp_server.src.api.handlers.dependent_handlers import make_all_dependent_handlers
+    from mcp_server.src.api.handlers.instance_handlers import make_instance_handlers
+    from mcp_server.src.api.handlers.system_handlers import make_system_handlers
+    from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
+
+    session_factory = make_session_factory()
+    for method, handler in make_workflow_handlers(session_factory).items():
+        app.register_jsonrpc_handler(method, handler)  # type: ignore[attr-defined]
+    for method, handler in make_all_dependent_handlers(session_factory).items():
+        app.register_jsonrpc_handler(method, handler)  # type: ignore[attr-defined]
+    for method, handler in make_instance_handlers(session_factory).items():
+        app.register_jsonrpc_handler(method, handler)  # type: ignore[attr-defined]
+    for method, handler in make_system_handlers(session_factory, mock_users).items():
+        app.register_jsonrpc_handler(method, handler)  # type: ignore[attr-defined]
+
+
+def create_runtime_app(config_path: str | None = None) -> Flask:
+    """Build a production runtime app with config and default handlers loaded."""
+
+    load_dotenv()
+    config = load_mcp_config(config_path)
+    validate_mcp_config(config)
+    mock_users = get_mock_user_map(config)
+
+    app = create_app()
+    register_runtime_handlers(app, mock_users)
+    return app
+
+
 app = create_app()
+
+
+if __name__ == "__main__":
+    try:
+        runtime_app = create_runtime_app()
+    except (ConfigError, ValidationError, KeyError) as exc:
+        logger.error(json.dumps({"event": "mcp.startup.failed", "reason": str(exc)}))
+        raise SystemExit(1) from exc
+
+    host = os.getenv("MCP_HOST", "127.0.0.1")
+    port = int(os.getenv("MCP_PORT", "5001"))
+    runtime_app.run(host=host, port=port, debug=False)

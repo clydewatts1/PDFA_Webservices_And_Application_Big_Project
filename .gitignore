@@ -211,3 +211,7 @@ __marimo__/
 Thumbs.db
 *.tmp
 *.swp
+
+# Universal IDE folders
+.vscode/
+.idea/
