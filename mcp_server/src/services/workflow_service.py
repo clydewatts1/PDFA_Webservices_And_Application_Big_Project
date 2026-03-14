@@ -64,6 +64,16 @@ def _row_to_dict(row: Workflow) -> dict[str, Any]:
     }
 
 
+def _validate_pagination(limit: int | None, offset: int | None) -> tuple[int | None, int | None]:
+    """Validate optional pagination fields and normalize integer values."""
+
+    if limit is not None and (not isinstance(limit, int) or limit <= 0):
+        raise ServiceError("limit must be a positive integer", code="invalid_pagination")
+    if offset is not None and (not isinstance(offset, int) or offset < 0):
+        raise ServiceError("offset must be a non-negative integer", code="invalid_pagination")
+    return limit, offset
+
+
 # ---------------------------------------------------------------------------
 # Public service functions
 # ---------------------------------------------------------------------------
@@ -155,9 +165,20 @@ def get_workflow(session: Session, workflow_name: str) -> dict[str, Any]:
     return _row_to_dict(row)
 
 
-def list_workflows(session: Session) -> list[dict[str, Any]]:
+def list_workflows(
+    session: Session,
+    *,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[dict[str, Any]]:
     """Return all active Workflow rows."""
-    rows = session.query(Workflow).filter_by(DeleteInd=0).filter(Workflow.EffToDateTime == HIGH_DATE).all()
+    limit, offset = _validate_pagination(limit, offset)
+    query = session.query(Workflow).filter_by(DeleteInd=0).filter(Workflow.EffToDateTime == HIGH_DATE)
+    if offset:
+        query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+    rows = query.all()
     return [_row_to_dict(r) for r in rows]
 
 

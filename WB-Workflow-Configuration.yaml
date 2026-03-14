@@ -1,4 +1,5 @@
 server_name: WB-Workflow-Configuration
+auth_disclaimer: "Mock plain-text credentials are non-production only and must not be used as a production authentication control."
 resources:
   database:
     provider: sqlalchemy

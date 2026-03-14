@@ -176,6 +176,16 @@ def _copy_to_hist(config: EntityConfig, active: Any, close_time: datetime, actor
     )
 
 
+def _validate_pagination(limit: int | None, offset: int | None) -> tuple[int | None, int | None]:
+    """Validate optional pagination values for list operations."""
+
+    if limit is not None and (not isinstance(limit, int) or limit <= 0):
+        raise ServiceError("limit must be a positive integer", code="invalid_pagination")
+    if offset is not None and (not isinstance(offset, int) or offset < 0):
+        raise ServiceError("offset must be a non-negative integer", code="invalid_pagination")
+    return limit, offset
+
+
 # ---------------------------------------------------------------------------
 # Public CRUD operations
 # ---------------------------------------------------------------------------
@@ -253,7 +263,11 @@ def list_entities(
     session: Session,
     config: EntityConfig,
     filters: dict[str, Any] | None = None,
+    *,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> list[dict[str, Any]]:
+    limit, offset = _validate_pagination(limit, offset)
     query = (
         session.query(config.model_class)
         .filter_by(DeleteInd=0)
@@ -261,6 +275,10 @@ def list_entities(
     )
     if filters:
         query = query.filter_by(**filters)
+    if offset:
+        query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
     return [_row_to_dict(r) for r in query.all()]
 
 

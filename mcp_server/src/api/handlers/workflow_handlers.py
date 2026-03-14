@@ -28,6 +28,12 @@ from mcp_server.src.services.workflow_service import (
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 
+def _normalize_crud_result(payload: dict[str, Any], status_message: str) -> dict[str, Any]:
+    """Attach normalized CRUD result semantics across transport handlers."""
+
+    return attach_success_metadata(payload, status_message=status_message)
+
+
 def _extract_actor(params: dict[str, Any]) -> str:
     actor = params.get("actor")
     if not actor:
@@ -41,6 +47,7 @@ def _service_error_to_rpc(exc: ServiceError) -> JsonRpcError:
         "duplicate_active_key": 4009,     # Conflict
         "workflow_not_found": 4044,         # Not found
         "missing_required_field": 4002,   # Bad request
+        "invalid_pagination": 4002,
     }
     rpc_code = http_code_map.get(exc.code, 5000)
     return JsonRpcError(code=rpc_code, message="ServiceError", data={"code": exc.code, "message": str(exc)})
@@ -57,10 +64,7 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    create_workflow(session, params, actor),
-                    status_message="workflow.create completed",
-                )
+                return _normalize_crud_result(create_workflow(session, params, actor), "workflow.create completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -68,10 +72,7 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    update_workflow(session, params, actor),
-                    status_message="workflow.update completed",
-                )
+                return _normalize_crud_result(update_workflow(session, params, actor), "workflow.update completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -81,19 +82,21 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
             raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "WorkflowName"})
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    get_workflow(session, workflow_name),
-                    status_message="workflow.get completed",
-                )
+                return _normalize_crud_result(get_workflow(session, workflow_name), "workflow.get completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
     def _workflow_list(params: dict[str, Any]) -> dict[str, Any]:
-        with session_factory() as session:
-            return attach_success_metadata(
-                {"workflows": list_workflows(session)},
-                status_message="workflow.list completed",
-            )
+        limit = params.get("limit")
+        offset = params.get("offset")
+        try:
+            with session_factory() as session:
+                return _normalize_crud_result(
+                    {"workflows": list_workflows(session, limit=limit, offset=offset)},
+                    "workflow.list completed",
+                )
+        except ServiceError as exc:
+            raise _service_error_to_rpc(exc) from exc
 
     def _workflow_delete(params: dict[str, Any]) -> dict[str, Any]:
         actor = _extract_actor(params)
@@ -102,10 +105,7 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
             raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "WorkflowName"})
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    delete_workflow(session, workflow_name, actor),
-                    status_message="workflow.delete completed",
-                )
+                return _normalize_crud_result(delete_workflow(session, workflow_name, actor), "workflow.delete completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 

@@ -39,6 +39,12 @@ from mcp_server.src.services.workflow_service import (
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 
+def _normalize_crud_result(payload: dict[str, Any], status_message: str) -> dict[str, Any]:
+    """Attach normalized CRUD result semantics across dependent handlers."""
+
+    return attach_success_metadata(payload, status_message=status_message)
+
+
 def _extract_actor(params: dict[str, Any]) -> str:
     actor = params.get("actor")
     if not actor:
@@ -56,6 +62,7 @@ def _service_error_to_rpc(exc: ServiceError) -> JsonRpcError:
         "entity_not_found": 4044,
         "invalid_workflow_reference": 4022,
         "missing_required_field": 4002,
+        "invalid_pagination": 4002,
     }
     rpc_code = code_map.get(exc.code, 5000)
     return JsonRpcError(
@@ -79,10 +86,7 @@ def make_entity_handlers(
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    create_entity(session, config, params, actor),
-                    status_message=f"{prefix}.create completed",
-                )
+                return _normalize_crud_result(create_entity(session, config, params, actor), f"{prefix}.create completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -90,10 +94,7 @@ def make_entity_handlers(
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    update_entity(session, config, params, actor),
-                    status_message=f"{prefix}.update completed",
-                )
+                return _normalize_crud_result(update_entity(session, config, params, actor), f"{prefix}.update completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -110,10 +111,7 @@ def make_entity_handlers(
             bk[k] = v
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    get_entity(session, config, bk),
-                    status_message=f"{prefix}.get completed",
-                )
+                return _normalize_crud_result(get_entity(session, config, bk), f"{prefix}.get completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
@@ -121,11 +119,16 @@ def make_entity_handlers(
         filters: dict[str, Any] | None = None
         if config.requires_workflow_fk and params.get("WorkflowName"):
             filters = {"WorkflowName": params["WorkflowName"]}
-        with session_factory() as session:
-            return attach_success_metadata(
-                {f"{prefix}s": list_entities(session, config, filters)},
-                status_message=f"{prefix}.list completed",
-            )
+        limit = params.get("limit")
+        offset = params.get("offset")
+        try:
+            with session_factory() as session:
+                return _normalize_crud_result(
+                    {f"{prefix}s": list_entities(session, config, filters, limit=limit, offset=offset)},
+                    f"{prefix}.list completed",
+                )
+        except ServiceError as exc:
+            raise _service_error_to_rpc(exc) from exc
 
     def _delete(params: dict[str, Any]) -> dict[str, Any]:
         actor = _extract_actor(params)
@@ -141,10 +144,7 @@ def make_entity_handlers(
             bk[k] = v
         try:
             with session_factory() as session:
-                return attach_success_metadata(
-                    delete_entity(session, config, bk, actor),
-                    status_message=f"{prefix}.delete completed",
-                )
+                return _normalize_crud_result(delete_entity(session, config, bk, actor), f"{prefix}.delete completed")
         except ServiceError as exc:
             raise _service_error_to_rpc(exc) from exc
 
