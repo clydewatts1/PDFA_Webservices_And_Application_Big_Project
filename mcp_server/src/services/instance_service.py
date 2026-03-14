@@ -1,3 +1,9 @@
+"""Instance lifecycle service and replication orchestration.
+
+This module manages instance creation, state transitions, and transactional
+replication of design-time dependent records into instance-scoped rows.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -24,11 +30,15 @@ from mcp_server.src.services.validation import validate_instance_state
 
 
 class InstanceNotFoundError(ServiceError):
+    """Raised when an active instance cannot be located by name."""
+
     def __init__(self, instance_name: str) -> None:
         super().__init__(f"Instance '{instance_name}' not found or not active.", code="instance_not_found")
 
 
 def _active_workflow(session: Session, workflow_name: str) -> Workflow | None:
+    """Return the active workflow row for the supplied workflow name."""
+
     return (
         session.query(Workflow)
         .filter_by(WorkflowName=workflow_name, DeleteInd=0)
@@ -38,6 +48,8 @@ def _active_workflow(session: Session, workflow_name: str) -> Workflow | None:
 
 
 def _active_instance(session: Session, instance_name: str) -> Instance | None:
+    """Return the active instance row for the supplied instance name."""
+
     return (
         session.query(Instance)
         .filter_by(InstanceName=instance_name, DeleteInd=0)
@@ -47,6 +59,8 @@ def _active_instance(session: Session, instance_name: str) -> Instance | None:
 
 
 def _instance_to_dict(row: Instance) -> dict[str, Any]:
+    """Serialize an instance ORM row to an API-safe dictionary."""
+
     return {
         "InstanceName": row.InstanceName,
         "WorkflowName": row.WorkflowName,
@@ -65,6 +79,8 @@ def _instance_to_dict(row: Instance) -> dict[str, Any]:
 
 
 def _copy_instance_to_hist(row: Instance, close_time: datetime, actor: str) -> InstanceHist:
+    """Create a history snapshot from the active instance row."""
+
     return InstanceHist(
         InstanceName=row.InstanceName,
         WorkflowName=row.WorkflowName,
@@ -83,6 +99,8 @@ def _copy_instance_to_hist(row: Instance, close_time: datetime, actor: str) -> I
 
 
 def _replicate_rows(session: Session, model_class: type, fields: list[str], workflow_name: str, instance_name: str, actor: str, now: datetime) -> int:
+    """Replicate active design-time rows into instance-scoped current rows."""
+
     source_rows = (
         session.query(model_class)
         .filter_by(WorkflowName=workflow_name, DeleteInd=0, InstanceName=None)
@@ -105,6 +123,12 @@ def _replicate_rows(session: Session, model_class: type, fields: list[str], work
 
 
 def create_instance(session: Session, params: dict[str, Any], actor: str) -> dict[str, Any]:
+    """Create a new instance and replicate dependent design-time records.
+
+    The operation runs inside a transactional boundary; replication failures
+    roll back instance creation.
+    """
+
     instance_name = params.get("InstanceName")
     workflow_name = params.get("WorkflowName")
     if not instance_name:
@@ -208,6 +232,8 @@ def create_instance(session: Session, params: dict[str, Any], actor: str) -> dic
 
 
 def update_instance_state(session: Session, params: dict[str, Any], actor: str) -> dict[str, Any]:
+    """Transition instance state by closing current row and inserting replacement."""
+
     instance_name = params.get("InstanceName")
     new_state = params.get("InstanceState")
     if not instance_name:
@@ -252,6 +278,8 @@ def update_instance_state(session: Session, params: dict[str, Any], actor: str) 
 
 
 def get_instance(session: Session, instance_name: str) -> dict[str, Any]:
+    """Return the active instance payload for the specified instance name."""
+
     active = _active_instance(session, instance_name)
     if active is None:
         raise InstanceNotFoundError(instance_name)
@@ -259,6 +287,8 @@ def get_instance(session: Session, instance_name: str) -> dict[str, Any]:
 
 
 def list_instances(session: Session, workflow_name: str | None = None) -> list[dict[str, Any]]:
+    """List active instances, optionally filtered by workflow name."""
+
     query = session.query(Instance).filter_by(DeleteInd=0).filter(Instance.EffToDateTime == HIGH_DATE)
     if workflow_name:
         query = query.filter_by(WorkflowName=workflow_name)

@@ -1,3 +1,5 @@
+"""Temporary Flask routes for instance create/list/state updates."""
+
 from __future__ import annotations
 
 import os
@@ -11,14 +13,20 @@ instance_bp = Blueprint("instance", __name__, url_prefix="/instance")
 
 
 def _client() -> MCPClient:
+    """Construct an MCP client using configured base URL."""
+
     return MCPClient(base_url=os.environ.get("MCP_BASE_URL", "http://localhost:5001"))
 
 
 def _actor() -> str:
+    """Return actor value used for UI-triggered write operations."""
+
     return os.environ.get("DEFAULT_ACTOR", "flask_ui_user")
 
 
 def _page(title: str, body: str) -> str:
+    """Render a compact HTML wrapper for instance views."""
+
     return f"""<!doctype html><html><head><meta charset='utf-8'><title>{title}</title></head>
 <body style='font-family:sans-serif;max-width:900px;margin:2rem auto'>
 <nav><a href='/instance'>List</a> | <a href='/instance/new'>Create</a> | <a href='/instance/state'>Update State</a></nav>
@@ -27,6 +35,8 @@ def _page(title: str, body: str) -> str:
 
 @instance_bp.get("/")
 def list_instances_view():
+    """List active instances, optionally filtered by workflow name."""
+
     wf = request.args.get("WorkflowName")
     params: dict[str, Any] = {"WorkflowName": wf} if wf else {}
     try:
@@ -46,6 +56,8 @@ def list_instances_view():
 
 @instance_bp.get("/new")
 def create_form():
+    """Render the create-instance form."""
+
     body = """
 <form method='post' action='/instance'>
   <label>InstanceName <input name='InstanceName' required></label><br><br>
@@ -61,6 +73,8 @@ def create_form():
 
 @instance_bp.post("/")
 def create_submit():
+    """Submit instance.create and render confirmation or error."""
+
     params = {
         "InstanceName": request.form.get("InstanceName", "").strip(),
         "WorkflowName": request.form.get("WorkflowName", "").strip(),
@@ -82,6 +96,8 @@ def create_submit():
 
 @instance_bp.get("/state")
 def state_form():
+    """Render the instance-state update form."""
+
     body = """
 <form method='post' action='/instance/state'>
   <label>InstanceName <input name='InstanceName' required></label><br><br>
@@ -94,6 +110,8 @@ def state_form():
 
 @instance_bp.post("/state")
 def state_submit():
+    """Submit instance.update_state and render confirmation or error."""
+
     params = {
         "InstanceName": request.form.get("InstanceName", "").strip(),
         "InstanceState": request.form.get("InstanceState", "").strip(),

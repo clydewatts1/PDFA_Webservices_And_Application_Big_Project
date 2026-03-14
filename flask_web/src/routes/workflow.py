@@ -20,15 +20,21 @@ workflow_bp = Blueprint("workflow", __name__, url_prefix="/workflow")
 
 
 def _get_client() -> MCPClient:
+    """Construct an MCP client using configured base URL."""
+
     base_url = os.environ.get("MCP_BASE_URL", "http://localhost:5001")
     return MCPClient(base_url=base_url)
 
 
 def _actor() -> str:
+    """Return the default actor used for UI-triggered write operations."""
+
     return os.environ.get("DEFAULT_ACTOR", "flask_ui_user")
 
 
 def _html_page(title: str, body: str) -> str:
+    """Render a minimal HTML wrapper for temporary workflow views."""
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>{title}</title>
@@ -60,6 +66,8 @@ def _html_page(title: str, body: str) -> str:
 
 @workflow_bp.get("/")
 def list_workflows_view():
+    """List active workflows by calling MCP workflow.list."""
+
     client = _get_client()
     try:
         result = client.call("workflow.list", {})
@@ -91,6 +99,8 @@ def list_workflows_view():
 
 @workflow_bp.get("/new")
 def create_workflow_form():
+    """Render the create-workflow form."""
+
     body = """
 <form method="POST" action="/workflow">
   <label>Workflow Name <input name="WorkflowName" required /></label>
@@ -108,6 +118,8 @@ def create_workflow_form():
 
 @workflow_bp.post("/")
 def create_workflow_submit():
+    """Submit workflow.create via MCP and show success/error feedback."""
+
     form = request.form
     params = {
         "WorkflowName": form.get("WorkflowName", "").strip(),

@@ -56,6 +56,12 @@ environment variables, and the staged delivery process.
 Major directories must also include supplementary README files that explain their local
 architecture and responsibilities in the overall three-tier design.
 
+Current supplementary README coverage:
+- `database/README.md`
+- `docs/README.md`
+- `mcp_server/README.md`
+- `flask_web/README.md`
+
 All external sources used during development, including AI prompts, architectural research,
 and Spec Kit usage, must be cited in project documentation so the development process is
 auditable.
@@ -123,3 +129,4 @@ pytest mcp_server/tests/ -v --tb=short
 - Prompt traceability: `docs/prompts/prompt_log.md`
 - External source attribution: `docs/source_attribution.md`
 - Test execution evidence: `docs/test_evidence.md`
+- Section V compliance artifacts: `specs/002-milestone2-section-v/artifacts/`

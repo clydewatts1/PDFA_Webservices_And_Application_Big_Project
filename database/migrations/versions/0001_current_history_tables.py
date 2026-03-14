@@ -100,7 +100,6 @@ def upgrade() -> None:
 
         columns.extend(_control_columns())
 
-        # Prepend surrogate PK; business-key indexes created separately
         all_columns = [
             sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
         ] + columns

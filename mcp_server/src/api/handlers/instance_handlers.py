@@ -1,3 +1,5 @@
+"""JSON-RPC handlers for instance lifecycle operations."""
+
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -19,6 +21,8 @@ Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 
 def _extract_actor(params: dict[str, Any]) -> str:
+    """Extract the required actor field from JSON-RPC params."""
+
     actor = params.get("actor")
     if not actor:
         raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "actor"})
@@ -26,6 +30,8 @@ def _extract_actor(params: dict[str, Any]) -> str:
 
 
 def _service_error_to_rpc(exc: Exception) -> JsonRpcError:
+    """Map service and validation exceptions to JSON-RPC errors."""
+
     if isinstance(exc, ValidationError):
         return JsonRpcError(code=4002, message="ValidationError", data={"code": exc.code, "message": str(exc)})
     if isinstance(exc, ServiceError):
@@ -40,7 +46,11 @@ def _service_error_to_rpc(exc: Exception) -> JsonRpcError:
 
 
 def make_instance_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
+    """Build instance method handlers for JSON-RPC registration."""
+
     def _create(params: dict[str, Any]) -> dict[str, Any]:
+        """Handle instance.create calls."""
+
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
@@ -49,6 +59,8 @@ def make_instance_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
             raise _service_error_to_rpc(exc) from exc
 
     def _update_state(params: dict[str, Any]) -> dict[str, Any]:
+        """Handle instance.update_state calls."""
+
         actor = _extract_actor(params)
         try:
             with session_factory() as session:
@@ -57,6 +69,8 @@ def make_instance_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
             raise _service_error_to_rpc(exc) from exc
 
     def _get(params: dict[str, Any]) -> dict[str, Any]:
+        """Handle instance.get calls."""
+
         name = params.get("InstanceName")
         if not name:
             raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "InstanceName"})
@@ -67,6 +81,8 @@ def make_instance_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
             raise _service_error_to_rpc(exc) from exc
 
     def _list(params: dict[str, Any]) -> dict[str, Any]:
+        """Handle instance.list calls."""
+
         try:
             with session_factory() as session:
                 return {"instances": list_instances(session, params.get("WorkflowName"))}

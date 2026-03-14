@@ -1,3 +1,5 @@
+"""HTTP JSON-RPC client used by Flask routes to call the MCP server."""
+
 from __future__ import annotations
 
 import json
@@ -13,6 +15,8 @@ if not logger.handlers:
 
 
 class MCPClientError(RuntimeError):
+    """Raised when the MCP server returns a JSON-RPC error payload."""
+
     def __init__(self, *, code: int, message: str, data: dict[str, Any] | None = None) -> None:
         self.code = code
         self.message = message
@@ -21,11 +25,15 @@ class MCPClientError(RuntimeError):
 
 
 class MCPClient:
+    """Thin MCP JSON-RPC client wrapper with structured error handling."""
+
     def __init__(self, base_url: str, timeout_seconds: int = 30) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
 
     def call(self, method: str, params: dict[str, Any], request_id: str | int = 1) -> dict[str, Any]:
+        """Call an MCP JSON-RPC method and return the result payload."""
+
         payload = {
             "jsonrpc": "2.0",
             "id": request_id,

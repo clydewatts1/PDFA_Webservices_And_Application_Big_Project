@@ -1,3 +1,5 @@
+"""Flask web application entrypoint for temporary Section V demo flows."""
+
 from __future__ import annotations
 
 import json
@@ -18,6 +20,8 @@ if not logger.handlers:
 
 
 def create_app() -> Flask:
+    """Create and configure the Flask web application instance."""
+
     app = Flask(__name__)
 
     app.register_blueprint(workflow_bp)
@@ -26,6 +30,8 @@ def create_app() -> Flask:
 
     @app.get("/")
     def index():
+        """Render the top-level navigation index page."""
+
         return (
             "<h1>PDFA Temporary App</h1>"
             "<ul>"
@@ -37,6 +43,8 @@ def create_app() -> Flask:
 
     @app.errorhandler(MCPClientError)
     def handle_mcp_client_error(error: MCPClientError):
+        """Normalize MCP client exceptions into JSON HTTP responses."""
+
         logger.warning(
             json.dumps(
                 {
@@ -56,6 +64,8 @@ app = create_app()
 
 
 if __name__ == "__main__":
+    """Run the Flask app using environment-driven host and port values."""
+
     host = os.getenv("FLASK_HOST", "127.0.0.1")
     port = int(os.getenv("FLASK_PORT", "5000"))
     app.run(host=host, port=port, debug=False)

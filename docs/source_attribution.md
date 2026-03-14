@@ -25,6 +25,10 @@ This project records external assistance and references used during design and i
 - Primary requirements source: `specs/001-define-workflow-tables/spec.md`
 - Technical design source: `specs/001-define-workflow-tables/plan.md`
 - Execution ledger: `specs/001-define-workflow-tables/tasks.md`
+- Milestone 2 specification source: `specs/002-milestone2-section-v/spec.md`
+- Milestone 2 implementation plan source: `specs/002-milestone2-section-v/plan.md`
+- Milestone 2 execution ledger: `specs/002-milestone2-section-v/tasks.md`
+- Milestone 2 compliance contract: `specs/002-milestone2-section-v/contracts/section-v-compliance-review.md`
 
 ## Traceability Notes
 
@@ -34,3 +38,13 @@ This project records external assistance and references used during design and i
   - validation outcomes,
   - major decisions.
 - This document plus `prompt_log.md` together satisfy external-source attribution requirements for hand-up review.
+
+## Milestone 2 Section V Compliance Sources
+
+- Constitution requirement baseline: `.specify/memory/constitution.md` (Principle V, version 1.2.0).
+- Supplementary directory README set:
+  - `database/README.md`
+  - `docs/README.md`
+  - `mcp_server/README.md`
+  - `flask_web/README.md`
+- Compliance evidence artifacts: `specs/002-milestone2-section-v/artifacts/`
