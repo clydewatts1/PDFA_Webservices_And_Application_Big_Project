@@ -103,19 +103,25 @@ Milestone MCP configuration is loaded from canonical file:
 alembic upgrade head
 ```
 
-### 5) Start MCP server (terminal 1)
+### 5) Start MCP stdio server (terminal 1)
+
+```powershell
+python -m mcp_server.src.server
+```
+
+### 6) Start MCP HTTP/SSE runtime (terminal 2)
 
 ```powershell
 python -m mcp_server.src.api.app
 ```
 
-### 6) Start Flask web app (terminal 2)
+### 7) Start Flask web app (terminal 3)
 
 ```powershell
 python -m flask_web.src.app
 ```
 
-### 7) Run tests
+### 8) Run tests
 
 ```powershell
 pytest mcp_server/tests/ -v --tb=short
@@ -134,4 +140,5 @@ pytest mcp_server/tests/ -v --tb=short
 - External source attribution: `docs/source_attribution.md`
 - Test execution evidence: `docs/test_evidence.md`
 - MCP milestone test runbook: `docs/mcp_milestone_test_guide.md`
+- MCP transport compatibility quickstart: `specs/004-mcp-stdio-compat/quickstart.md`
 - Section V compliance artifacts: `specs/002-milestone2-section-v/artifacts/`

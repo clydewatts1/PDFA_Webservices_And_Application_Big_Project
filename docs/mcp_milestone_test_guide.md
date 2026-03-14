@@ -29,13 +29,21 @@ MCP_PORT=5001
    - required tools (`get_system_health`, `user_logon`, `user_logoff`, CRUD tools),
    - `mock_users` map for auth checks.
 
-## 4) Start MCP Server
+## 4) Start MCP Transport Profiles
+
+### A) Required stdio profile (Inspector canonical)
+
+```powershell
+python -m mcp_server.src.server
+```
+
+### B) Required HTTP/SSE profile
 
 ```powershell
 python -m mcp_server.src.api.app
 ```
 
-Expected: server starts and exposes JSON-RPC endpoint at `/rpc` on configured host/port.
+Expected: runtime exposes JSON-RPC endpoint at `/rpc` and SSE endpoint at `/sse` on configured host/port.
 
 ## 5) Required Inspector Validation (`npx`)
 Run inspector:
@@ -60,7 +68,27 @@ Use inspector to invoke and verify:
    - `guard.*`
    - `interaction_component.*`
 
-## 6) Manual Database Verification (Primary: SQLite)
+### Inspector command configuration
+- Command: `python`
+- Args: `-m mcp_server.src.server`
+
+### Stdio startup troubleshooting
+- If startup fails with SDK import errors, reinstall dependencies from `requirements.txt`.
+- If startup fails with config errors, ensure `MCP_CONFIG_PATH=WB-Workflow-Configuration.yaml`.
+- If tools are missing in Inspector, verify `tools` in `WB-Workflow-Configuration.yaml`.
+
+## 5B) Health/Auth transport parity procedure
+1. Invoke `get_system_health`, `user_logon`, and `user_logoff` over stdio.
+2. Invoke equivalent requests over HTTP JSON-RPC (`POST /rpc`).
+3. Confirm parity for `status` and `status_message` semantics.
+
+## 6) End-to-end CRUD execution walkthrough
+1. Create a workflow and one dependent entity (`role.create` or `interaction.create`).
+2. Verify retrieval (`*.get`) and listing (`*.list`) for created records.
+3. Execute update (`*.update`) and verify changed fields.
+4. Execute delete (`*.delete`) and verify logical-delete semantics.
+
+## 7) Manual Database Verification (Primary: SQLite)
 After running tool operations, query data directly:
 
 ```powershell
@@ -78,7 +106,7 @@ Manual verification checks:
 - Updated records show changed values and current-row behavior.
 - Deleted rows are represented by logical-delete semantics where applicable.
 
-## 7) Optional PostgreSQL Equivalent Commands
+## 8) Optional PostgreSQL Equivalent Commands
 
 ```sql
 \dt
@@ -89,14 +117,19 @@ SELECT "GuardName", "WorkflowName", "DeleteInd" FROM "Guard" LIMIT 10;
 SELECT "InteractionComponentName", "WorkflowName", "DeleteInd" FROM "InteractionComponent" LIMIT 10;
 ```
 
-## 8) Negative-Case Verification
+## 9) Negative-Case Verification
 - Missing/invalid `WB-Workflow-Configuration.yaml` path/content.
 - Invalid DB URL or unavailable database.
 - Missing auth fields (`username`, `password`) for `user_logon`.
 - Invalid pagination values for list operations.
 - Missing primary-key inputs for get/update/delete operations.
 
-## 9) Evidence Capture
+## 10) Constitution guard check
+Confirm Flask remains HTTP-only:
+- Flask must call MCP via HTTP contracts (`/rpc` and `/sse`) only.
+- Flask must not invoke stdio transport or import MCP stdio runtime modules.
+
+## 11) Evidence Capture
 Record run details in `docs/test_evidence.md`:
 - Date/time and environment,
 - commands executed,

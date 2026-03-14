@@ -55,3 +55,11 @@ This project records external assistance and references used during design and i
 - Implementation plan source: `specs/003-mcp-server-setup-tests/plan.md`
 - Contract source: `specs/003-mcp-server-setup-tests/contracts/mcp-milestone-tooling.md`
 - Runbook source: `docs/mcp_milestone_test_guide.md`
+
+## MCP Transport Compatibility Sources (Feature 004)
+
+- Specification source: `specs/004-mcp-stdio-compat/spec.md`
+- Implementation plan source: `specs/004-mcp-stdio-compat/plan.md`
+- Contract source: `specs/004-mcp-stdio-compat/contracts/mcp-transport-compatibility.md`
+- Quickstart source: `specs/004-mcp-stdio-compat/quickstart.md`
+- Task execution ledger: `specs/004-mcp-stdio-compat/tasks.md`
