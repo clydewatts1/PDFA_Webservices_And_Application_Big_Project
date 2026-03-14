@@ -1,3 +1,5 @@
+"""MCP JSON-RPC application bootstrap and transport envelope handlers."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -16,6 +18,8 @@ if not logger.handlers:
 
 @dataclass
 class JsonRpcError(Exception):
+    """Structured JSON-RPC error payload container."""
+
     code: int
     message: str
     data: dict[str, Any] | None = None
@@ -25,16 +29,24 @@ Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 
 def create_app() -> Flask:
+    """Create and configure the MCP Flask application."""
+
     app = Flask(__name__)
     handlers: dict[str, Handler] = {}
 
     def register(method: str, handler: Handler) -> None:
+        """Register a JSON-RPC method handler."""
+
         handlers[method] = handler
 
     def _response(result: dict[str, Any], request_id: str | int | None) -> tuple[Any, int]:
+        """Build a JSON-RPC success envelope."""
+
         return jsonify({"jsonrpc": "2.0", "id": request_id, "result": result}), 200
 
     def _error(error: JsonRpcError, request_id: str | int | None) -> tuple[Any, int]:
+        """Build a JSON-RPC error envelope."""
+
         return (
             jsonify(
                 {
@@ -52,6 +64,8 @@ def create_app() -> Flask:
 
     @app.post("/rpc")
     def rpc() -> tuple[Any, int]:
+        """Execute one JSON-RPC request against registered handlers."""
+
         started_at = time.perf_counter()
         payload = request.get_json(silent=True) or {}
         request_id = payload.get("id")

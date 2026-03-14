@@ -58,14 +58,20 @@ _ENTITY_META: dict[str, dict[str, Any]] = {
 
 
 def _client() -> MCPClient:
+    """Construct an MCP client for dependent-entity operations."""
+
     return MCPClient(base_url=os.environ.get("MCP_BASE_URL", "http://localhost:5001"))
 
 
 def _actor() -> str:
+    """Return the default actor identity for dependent writes."""
+
     return os.environ.get("DEFAULT_ACTOR", "flask_ui_user")
 
 
 def _page(title: str, body: str) -> str:
+    """Render shared HTML shell for dependent-entity pages."""
+
     nav_links = " | ".join(
         f'<a href="/entities/{slug}">{meta["label"]}</a>'
         for slug, meta in _ENTITY_META.items()
@@ -90,6 +96,8 @@ def _page(title: str, body: str) -> str:
 
 
 def _404_entity(slug: str):
+    """Return an entity-not-found response for unknown route slugs."""
+
     return make_response(_page("Not Found", f"<p class='error'>Unknown entity type: {slug}</p>"), 404)
 
 
@@ -99,6 +107,8 @@ def _404_entity(slug: str):
 
 @dependent_bp.get("/<entity>")
 def list_entities_view(entity: str):
+    """List active records for a dependent entity type."""
+
     meta = _ENTITY_META.get(entity)
     if not meta:
         return _404_entity(entity)
@@ -137,6 +147,8 @@ def list_entities_view(entity: str):
 
 @dependent_bp.get("/<entity>/new")
 def create_entity_form(entity: str):
+    """Render create form for the selected dependent entity type."""
+
     meta = _ENTITY_META.get(entity)
     if not meta:
         return _404_entity(entity)
@@ -160,6 +172,8 @@ def create_entity_form(entity: str):
 
 @dependent_bp.post("/<entity>")
 def create_entity_submit(entity: str):
+    """Submit create request for selected dependent entity type."""
+
     meta = _ENTITY_META.get(entity)
     if not meta:
         return _404_entity(entity)
