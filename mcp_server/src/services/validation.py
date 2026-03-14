@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
+
+from mcp_server.src.lib.mcp_config import REQUIRED_TOOL_NAMES, get_required_tool_names, get_transport_contract
 
 HIGH_DATE_LITERAL = datetime(9999, 1, 1, 0, 0, 0)
 
@@ -56,3 +59,21 @@ def validate_mcp_config(config: dict[str, object]) -> None:
     mock_users = config.get("mock_users")
     if not isinstance(mock_users, dict) or not mock_users:
         raise ValidationError("mock_users map is required in MCP configuration", code="missing_mock_users")
+
+
+def validate_transport_compatibility(config: dict[str, Any]) -> None:
+    """Validate transport contract expectations required by milestone spec."""
+
+    contract = get_transport_contract(config)
+    if contract["http_rpc_endpoint"] != "/rpc":
+        raise ValidationError("HTTP JSON-RPC endpoint must be /rpc", code="invalid_rpc_endpoint")
+    if contract["sse_endpoint"] != "/sse":
+        raise ValidationError("SSE endpoint must be /sse", code="invalid_sse_endpoint")
+
+    configured_tools = get_required_tool_names(config)
+    missing_tools = sorted(REQUIRED_TOOL_NAMES - configured_tools)
+    if missing_tools:
+        raise ValidationError(
+            f"Required MCP tools missing from config: {', '.join(missing_tools)}",
+            code="missing_required_tools",
+        )

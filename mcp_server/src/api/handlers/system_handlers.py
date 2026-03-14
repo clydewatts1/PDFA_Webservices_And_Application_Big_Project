@@ -14,6 +14,15 @@ from mcp_server.src.services.validation import ValidationError
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 
+def _normalize_system_result(result: dict[str, Any], default_message: str) -> dict[str, Any]:
+    """Ensure health/auth handlers always return status and status_message keys."""
+
+    normalized = dict(result)
+    normalized.setdefault("status", "SUCCESS")
+    normalized.setdefault("status_message", default_message)
+    return normalized
+
+
 def _validation_error_to_rpc(exc: ValidationError) -> JsonRpcError:
     return JsonRpcError(
         code=4002,
@@ -30,17 +39,17 @@ def make_system_handlers(
 
     def _get_system_health(params: dict[str, Any]) -> dict[str, Any]:
         del params
-        return get_system_health(session_factory)
+        return _normalize_system_result(get_system_health(session_factory), "Health check completed")
 
     def _user_logon(params: dict[str, Any]) -> dict[str, Any]:
         try:
-            return user_logon(params, mock_users)
+            return _normalize_system_result(user_logon(params, mock_users), "Logon handled")
         except ValidationError as exc:
             raise _validation_error_to_rpc(exc) from exc
 
     def _user_logoff(params: dict[str, Any]) -> dict[str, Any]:
         try:
-            return user_logoff(params)
+            return _normalize_system_result(user_logoff(params), "Logoff handled")
         except ValidationError as exc:
             raise _validation_error_to_rpc(exc) from exc
 

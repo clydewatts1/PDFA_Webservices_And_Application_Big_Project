@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "local-stdio": {
+      "command": "c:/Users/cw171001/Projects/PDFA_Webservices_And_Application_Big_Project/.venv/Scripts/python.exe",
+      "args": ["-m", "mcp_server.src.server"],
+      "env": {
+        "MCP_CONFIG_PATH": "WB-Workflow-Configuration.yaml",
+        "DB_URL": "sqlite:///./local.db",
+        "DEFAULT_ACTOR": "local_dev"
+      }
+    }
+  }
+}
