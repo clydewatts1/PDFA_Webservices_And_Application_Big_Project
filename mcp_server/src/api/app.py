@@ -16,6 +16,7 @@ from flask import Flask, Response, jsonify, request, stream_with_context
 
 from mcp_server.src.db.session import make_session_factory
 from mcp_server.src.lib.mcp_config import ConfigError, get_mock_user_map, load_mcp_config
+from mcp_server.src.services.auth_service import reset_auth_sessions
 from mcp_server.src.services.validation import ValidationError, validate_mcp_config, validate_transport_compatibility
 
 
@@ -215,7 +216,7 @@ def create_app() -> Flask:
 def register_runtime_handlers(app: Flask, mock_users: dict[str, str]) -> None:
     """Register workflow/dependent/instance/system handlers for runtime app."""
 
-    from mcp_server.src.services.auth_service import reset_auth_sessions
+    from mcp_server.src.lib.tool_adapter import build_runtime_tool_adapter
 
     session_factory = make_session_factory()
     for method, handler in build_runtime_tool_adapter(session_factory, mock_users).items():

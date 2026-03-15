@@ -156,3 +156,44 @@ pytest mcp_server/tests/ -v --tb=short
 - MCP milestone test runbook: `docs/mcp_milestone_test_guide.md`
 - MCP transport compatibility quickstart: `specs/004-mcp-stdio-compat/quickstart.md`
 - Section V compliance artifacts: `specs/002-milestone2-section-v/artifacts/`
+
+
+## Appdendix
+
+### Testing SSE
+
+__0. Run Server__
+
+```
+$env:DB_URL="sqlite:///./local.db"
+$env:MCP_CONFIG_PATH="WB-Workflow-Configuration.yaml"
+$env:MCP_HOST="127.0.0.1"
+$env:MCP_PORT="5001"
+python -m mcp_server.src.api.app
+```
+
+__1. Open SSE stream__
+
+```
+curl.exe -N http://127.0.0.1:5001/sse
+```
+]__2. Trigger RPC__
+
+```
+$body = @{
+  jsonrpc = "2.0"
+  id = 1
+  method = "get_system_health"
+  params = @{}
+} | ConvertTo-Json -Depth 5
+
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:5001/rpc" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $body | ConvertTo-Json -Depth 10
+```
+
+
+
+
