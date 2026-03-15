@@ -35,6 +35,8 @@
 - Confirm Flask-to-MCP interactions use HTTP contracts only (JSON-RPC and/or SSE), with no
   direct database or in-process shortcut.
 - Confirm SQLAlchemy usage is confined to the MCP server tier.
+- Confirm persistence changes preserve symmetric current and `_Hist` schemas, required
+  temporal/audit columns, and MCP-owned expire-and-insert orchestration.
 - Confirm the work is sliced into a reviewable chunk and identifies the first independently
   demonstrable increment.
 - Confirm workflow-schema impact on Workflow, Role, Interaction, Guard,

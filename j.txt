@@ -1,0 +1,90 @@
+........................................................................ [ 59%]
+..................................................                       [100%]
+============================== warnings summary ===============================
+mcp_server/tests/contract/test_dependent_entities_contract.py: 14 warnings
+mcp_server/tests/contract/test_instance_contract.py: 8 warnings
+mcp_server/tests/contract/test_workflow_contract.py: 11 warnings
+mcp_server/tests/integration/test_dependent_entities_integrity.py: 7 warnings
+mcp_server/tests/integration/test_instance_replication_e2e.py: 6 warnings
+mcp_server/tests/integration/test_workflow_e2e.py: 9 warnings
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\workflow_service.py:91: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/contract/test_dependent_entities_contract.py: 19 warnings
+mcp_server/tests/contract/test_instance_contract.py: 32 warnings
+mcp_server/tests/integration/test_dependent_entities_integrity.py: 9 warnings
+mcp_server/tests/integration/test_instance_replication_e2e.py: 30 warnings
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\dependent_service.py:206: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/contract/test_dependent_entities_contract.py: 3 warnings
+mcp_server/tests/integration/test_dependent_entities_integrity.py: 8 warnings
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\dependent_service.py:232: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/contract/test_dependent_entities_contract.py::TestRoleGetListDelete::test_delete_removes_from_list
+mcp_server/tests/contract/test_dependent_entities_contract.py::TestGuardContract::test_delete_guard
+mcp_server/tests/integration/test_dependent_entities_integrity.py::TestRoleTemporalInvariant::test_delete_sets_delete_ind_and_closes_row
+mcp_server/tests/integration/test_dependent_entities_integrity.py::TestRoleTemporalInvariant::test_list_excludes_deleted_roles
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\dependent_service.py:295: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/contract/test_instance_contract.py: 8 warnings
+mcp_server/tests/integration/test_instance_replication_e2e.py: 7 warnings
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\instance_service.py:148: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/contract/test_instance_contract.py::TestInstanceStateAndList::test_update_state_success
+mcp_server/tests/integration/test_instance_replication_e2e.py::TestInstanceReplicationE2E::test_update_state_creates_history_and_new_current_row
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\instance_service.py:249: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/contract/test_workflow_contract.py::TestWorkflowUpdate::test_update_existing_workflow_succeeds
+mcp_server/tests/contract/test_workflow_contract.py::TestWorkflowUpdate::test_update_creates_new_active_row
+mcp_server/tests/integration/test_workflow_e2e.py::TestWorkflowLifecycle::test_update_produces_new_description
+mcp_server/tests/integration/test_workflow_e2e.py::TestTemporalSemantics::test_update_writes_prior_row_to_hist
+mcp_server/tests/integration/test_workflow_e2e.py::TestTemporalSemantics::test_update_closes_prior_current_row
+mcp_server/tests/integration/test_workflow_e2e.py::TestTemporalSemantics::test_list_excludes_closed_rows
+mcp_server/tests/integration/test_workflow_e2e.py::TestActiveRowInvariant::test_only_one_active_row_after_multiple_updates
+mcp_server/tests/integration/test_workflow_e2e.py::TestActiveRowInvariant::test_only_one_active_row_after_multiple_updates
+mcp_server/tests/integration/test_workflow_e2e.py::TestActiveRowInvariant::test_only_one_active_row_after_multiple_updates
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\workflow_service.py:122: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/contract/test_workflow_contract.py::TestWorkflowDelete::test_delete_marks_workflow_inactive
+mcp_server/tests/contract/test_workflow_contract.py::TestWorkflowDelete::test_deleted_workflow_not_in_list
+mcp_server/tests/integration/test_dependent_entities_integrity.py::TestInvalidWorkflowLinkage::test_interaction_create_with_deleted_workflow_rejected
+mcp_server/tests/integration/test_workflow_e2e.py::TestWorkflowLifecycle::test_delete_makes_workflow_unfindable
+mcp_server/tests/integration/test_workflow_e2e.py::TestTemporalSemantics::test_delete_sets_delete_ind_and_closes_row
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\services\workflow_service.py:191: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/unit/test_object_factory_dependent_entities.py: 20 warnings
+mcp_server/tests/unit/test_object_factory_instance.py: 7 warnings
+mcp_server/tests/unit/test_object_factory_workflow.py: 10 warnings
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\models\base.py:25: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = effective_from or datetime.utcnow()
+
+mcp_server/tests/unit/test_object_factory_instance.py::TestBuildInstance::test_build_instance_defaults
+mcp_server/tests/unit/test_object_factory_instance.py::TestBuildInstance::test_build_instance_custom_state
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_active_to_paused_sets_state_date
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_to_inactive_sets_end_date
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_to_paused_sets_end_date
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_to_active_preserves_end_date
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_invalid_state_raises
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\lib\object_factory.py:145: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_active_to_paused_sets_state_date
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_to_inactive_sets_end_date
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_to_paused_sets_end_date
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_to_active_preserves_end_date
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\src\lib\object_factory.py:159: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+mcp_server/tests/unit/test_object_factory_instance.py::TestInstanceStateTransitions::test_transition_to_active_preserves_end_date
+  C:\Users\cw171001\Projects\PDFA_Webservices_And_Application_Big_Project\mcp_server\tests\unit\test_object_factory_instance.py:53: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    current["InstanceEndDate"] = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+122 passed, 240 warnings in 7.82s

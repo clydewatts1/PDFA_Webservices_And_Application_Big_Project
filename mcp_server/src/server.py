@@ -2,23 +2,77 @@
 
 from __future__ import annotations
 
+import inspect
 import os
-from typing import Any
+import sys
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 
+from mcp.server.fastmcp import FastMCP
 from mcp_server.src.db.session import make_session_factory
 from mcp_server.src.lib.mcp_config import ConfigError, get_mock_user_map, load_mcp_config
 from mcp_server.src.lib.tool_adapter import build_runtime_tool_adapter
 from mcp_server.src.services.validation import ValidationError, validate_mcp_config, validate_transport_compatibility
 
+TYPE_MAP = {"string": str, "integer": int, "boolean": bool}
 
-def _load_fastmcp() -> Any:
-    try:
-        from mcp.server.fastmcp import FastMCP
-    except Exception as exc:
-        raise SystemExit("The MCP SDK is required. Install dependencies from requirements.txt.") from exc
-    return FastMCP
+
+def _make_typed_tool(
+    mcp_server: Any,
+    method_name: str,
+    method_handler: Any,
+    tool_def: dict,
+) -> None:
+    """Register a tool on the FastMCP server with a typed signature from the YAML tool definition."""
+    params_meta = tool_def.get("parameters") or {}
+    description = str(tool_def.get("description", ""))
+
+    sig_params = []
+    annotations: dict[str, Any] = {}
+    required_params: list[tuple[str, Any]] = []
+    optional_params: list[tuple[str, Any]] = []
+
+    for param_name, meta in params_meta.items():
+        if isinstance(meta, dict):
+            py_type = TYPE_MAP.get(meta.get("type", "string"), str)
+            required = meta.get("required", True)
+        else:
+            py_type = str
+            required = True
+
+        if required:
+            required_params.append((param_name, py_type))
+        else:
+            optional_params.append((param_name, py_type))
+
+    for param_name, py_type in required_params:
+        sig_params.append(inspect.Parameter(
+            param_name,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            annotation=py_type,
+        ))
+        annotations[param_name] = py_type
+
+    for param_name, py_type in optional_params:
+        sig_params.append(inspect.Parameter(
+            param_name,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            annotation=Optional[py_type],
+            default=None,
+        ))
+        annotations[param_name] = Optional[py_type]
+
+    def _tool_fn(**kwargs: Any) -> dict[str, Any]:
+        return method_handler(kwargs)
+
+    _tool_fn.__name__ = method_name
+    _tool_fn.__doc__ = description or None
+    _tool_fn.__annotations__ = annotations
+    if sig_params:
+        _tool_fn.__signature__ = inspect.Signature(sig_params)
+
+    mcp_server.tool(name=method_name, description=description)(_tool_fn)
 
 
 def create_stdio_server(config_path: str | None = None) -> Any:
@@ -32,18 +86,18 @@ def create_stdio_server(config_path: str | None = None) -> Any:
     mock_users = get_mock_user_map(config)
     handlers = build_runtime_tool_adapter(make_session_factory(), mock_users)
 
-    FastMCP = _load_fastmcp()
     server_name = str(config.get("server_name", "WB-Workflow-Configuration"))
     mcp = FastMCP(server_name)
 
-    for method, handler in handlers.items():
-        def _make_tool(method_name: str, method_handler: Any) -> None:
-            @mcp.tool(name=method_name)
-            def _dynamic_tool(**kwargs: Any) -> dict[str, Any]:
-                params = dict(kwargs)
-                return method_handler(params)
+    # Supports both new dict format {name, description, parameters} and old plain-string list
+    tool_defs: dict[str, dict] = {}
+    for t in config.get("tools", []):
+        if isinstance(t, dict) and "name" in t:
+            tool_defs[t["name"]] = t
 
-        _make_tool(method, handler)
+    for method_name, method_handler in handlers.items():
+        tool_def = tool_defs.get(method_name, {})
+        _make_typed_tool(mcp, method_name, method_handler, tool_def)
 
     return mcp
 
@@ -57,7 +111,7 @@ def main() -> int:
         mcp.run(transport="stdio")
         return 0
     except (ConfigError, ValidationError, KeyError) as exc:
-        print(f"MCP stdio startup failed: {exc}")
+        print(f"MCP stdio startup failed: {exc}", file=sys.stderr)  # stderr, NOT stdout
         return 1
 
 

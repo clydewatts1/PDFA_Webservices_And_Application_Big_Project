@@ -45,6 +45,8 @@ The project is governed by the constitution in .specify/memory/constitution.md.
 - Architecture is fixed to Database -> MCP Server -> Flask Web Server.
 - Flask must talk to MCP exclusively over HTTP using JSON-RPC and/or SSE.
 - SQLAlchemy is permitted only inside the MCP server layer.
+- Persisted domain tables must maintain symmetric current and `_Hist` schemas with
+	MCP-owned expire-and-insert history tracking.
 - Delivery proceeds in small chunks, starting with workflow table maintenance.
 - Development history must remain visible through meaningful Git commits.
 
@@ -101,6 +103,18 @@ Milestone MCP configuration is loaded from canonical file:
 
 ```powershell
 alembic upgrade head
+```
+
+### DB init (quick)
+
+```powershell
+$env:DB_URL="sqlite:///./local.db"; python -m alembic upgrade head
+```
+
+If your shell cannot resolve default Alembic config, use:
+
+```powershell
+python -m alembic -c database/alembic.ini upgrade head
 ```
 
 ### 5) Start MCP stdio server (terminal 1)

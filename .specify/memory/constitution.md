@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
-Version change: 1.1.0 -> 1.2.0
+Version change: 1.2.0 -> 1.3.0
 Modified principles:
-- V. Traceable Academic-Quality Delivery (expanded documentation and traceability rules)
+- III. SQLAlchemy Containment and Data Access Encapsulation (expanded with temporal/SCD Type-2 persistence requirements)
 Added sections:
-- None
+- III.a Temporal/SCD Type-2 Mandate
 Removed sections:
 - None
 Templates requiring updates:
@@ -44,6 +44,19 @@ and integrity operations MUST be performed by MCP tools that encapsulate transac
 validation, and persistence logic. Rationale: one persistence mechanism in one tier avoids
 leaky abstractions and keeps the data contract enforceable.
 
+### III.a Temporal/SCD Type-2 Mandate
+Every persisted domain table MUST have a structurally identical `_Hist` counterpart.
+Every current and history table MUST include `EffFromDateTime`, `EffToDateTime`,
+`DeleteInd`, `InsertUserName`, and `UpdateUserName`. The current table represents the
+point-in-time active record where `EffToDateTime` remains in the future and `DeleteInd`
+is `0`. The MCP server MUST own the expire-and-insert logic for every update: it MUST set
+the existing record's `EffToDateTime` to the current timestamp, insert the new version
+with `EffFromDateTime` set to the current timestamp, and synchronize those changes across
+both the primary table and the matching `_Hist` table within one transaction. Rationale:
+symmetric schema and MCP-owned temporal orchestration are required for auditable SCD
+Type-2 behavior and point-in-time correctness.
+
+
 ### IV. Incremental Graph-Model Delivery
 Implementation MUST proceed in small, reviewable chunks, beginning with workflow table
 maintenance before broader workflow behaviors. The persisted domain model MUST support the
@@ -72,6 +85,8 @@ of the development process, balancing human readability with strict grading rubr
 	environment variables, including a local .env workflow where appropriate.
 - The MCP server MUST own SQLAlchemy models, session handling, migrations, and relationship
 	enforcement for the seven-table workflow schema.
+- Every persisted domain entity MUST preserve symmetric current and `_Hist` schemas with
+	the mandated temporal and audit columns.
 - The Flask web server MUST treat MCP responses as its system of record for data access and
 	MUST NOT mirror persistence logic locally.
 - Any feature that changes schema shape, HTTP contracts, or event streams MUST update the
@@ -86,6 +101,8 @@ of the development process, balancing human readability with strict grading rubr
 - Each feature specification and implementation plan MUST state which layer is affected,
 	which MCP contracts are added or changed, whether schema integrity rules are impacted, and
 	which environment variables or deployment settings are required.
+- Reviews MUST reject any change that breaks current/`_Hist` symmetry, omits mandated
+	temporal columns, or moves expire-and-insert logic outside the MCP server.
 - Reviews MUST reject any change that breaks the three-tier boundary, introduces direct
 	database access outside MCP, omits required documentation for external sources, or leaves
 	commit history too coarse to show development progress.
@@ -104,14 +121,14 @@ task, and implementation review time.
 Versioning policy follows semantic versioning for governance documents: MAJOR for
 backward-incompatible principle removals or redefinitions, MINOR for new principles or
 materially expanded sections, and PATCH for clarifications that do not alter required
-behavior. This amendment materially expands delivery and documentation requirements around
-docstrings, over-commenting limits, and supplementary directory-level READMEs, and is
-therefore released as version 1.2.0.
+behavior. This amendment adds a new mandatory temporal/SCD Type-2 persistence rule and is
+therefore released as version 1.3.0.
 
 Every implementation review MUST verify that the current work respects the Database -> MCP
 Server -> Flask Web Server boundary, preserves MCP-over-HTTP communication, keeps
 SQLAlchemy confined to the MCP tier, maintains seven-table workflow schema integrity where
-relevant, documents environment variables, records external-source attribution, and
-follows the project's docstring and README requirements.
+relevant, preserves current/`_Hist` symmetry with MCP-owned expire-and-insert logic,
+documents environment variables, records external-source attribution, and follows the
+project's docstring and README requirements.
 
-**Version**: 1.2.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-13
+**Version**: 1.3.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-15

@@ -28,101 +28,174 @@ def _control_columns() -> list[sa.Column]:
 
 
 def upgrade() -> None:
-    for name in [
-        "Workflow",
-        "Workflow_Hist",
-        "Role",
-        "Role_Hist",
-        "Interaction",
-        "Interaction_Hist",
-        "Guard",
-        "Guard_Hist",
-        "InteractionComponent",
-        "InteractionComponent_Hist",
-        "UnitOfWork",
-        "UnitOfWork_Hist",
-        "Instance",
-        "Instance_Hist",
-    ]:
-        columns = []
-
-        if name.startswith("Workflow"):
-            columns.extend([
-                sa.Column("WorkflowName", sa.String(length=128), nullable=False),
-                sa.Column("WorkflowDescription", sa.Text(), nullable=True),
-                sa.Column("WorkflowContextDescription", sa.Text(), nullable=True),
-                sa.Column("WorkflowStateInd", sa.String(length=8), nullable=True),
-            ])
-        elif name.startswith("Role"):
-            columns.extend([
-                sa.Column("RoleName", sa.String(length=128), nullable=False),
-                sa.Column("WorkflowName", sa.String(length=128), nullable=False),
-                sa.Column("InstanceName", sa.String(length=128), nullable=True),
-                sa.Column("RoleDescription", sa.Text(), nullable=True),
-            ])
-        elif name.startswith("Interaction"):
-            columns.extend([
-                sa.Column("InteractionName", sa.String(length=128), nullable=False),
-                sa.Column("WorkflowName", sa.String(length=128), nullable=False),
-                sa.Column("InstanceName", sa.String(length=128), nullable=True),
-                sa.Column("InteractionDescription", sa.Text(), nullable=True),
-            ])
-        elif name.startswith("Guard"):
-            columns.extend([
-                sa.Column("GuardName", sa.String(length=128), nullable=False),
-                sa.Column("WorkflowName", sa.String(length=128), nullable=False),
-                sa.Column("InstanceName", sa.String(length=128), nullable=True),
-                sa.Column("GuardDescription", sa.Text(), nullable=True),
-            ])
-        elif name.startswith("InteractionComponent"):
-            columns.extend([
-                sa.Column("InteractionComponentName", sa.String(length=128), nullable=False),
-                sa.Column("WorkflowName", sa.String(length=128), nullable=False),
-                sa.Column("InstanceName", sa.String(length=128), nullable=True),
-                sa.Column("SourceName", sa.String(length=128), nullable=True),
-                sa.Column("TargetName", sa.String(length=128), nullable=True),
-            ])
-        elif name.startswith("UnitOfWork"):
-            columns.extend([
-                sa.Column("UnitOfWorkID", sa.String(length=128), nullable=False),
-                sa.Column("UnitOfWorkType", sa.String(length=64), nullable=True),
-                sa.Column("UnitOfWorkPayLoad", sa.Text(), nullable=True),
-            ])
-        elif name.startswith("Instance"):
-            columns.extend([
-                sa.Column("InstanceName", sa.String(length=128), nullable=False),
-                sa.Column("WorkflowName", sa.String(length=128), nullable=False),
-                sa.Column("InstanceState", sa.String(length=8), nullable=True),
-                sa.Column("InstanceStateDate", sa.DateTime(), nullable=True),
-                sa.Column("InstanceStartDate", sa.DateTime(), nullable=True),
-                sa.Column("InstanceEndDate", sa.DateTime(), nullable=True),
-            ])
-
-        columns.extend(_control_columns())
-
-        all_columns = [
-            sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
-        ] + columns
-        all_columns.append(sa.PrimaryKeyConstraint("id"))
-
-        op.create_table(name, *all_columns)
+    op.create_table("Workflow",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowDescription", sa.Text(), nullable=True),
+        sa.Column("WorkflowContextDescription", sa.Text(), nullable=True),
+        sa.Column("WorkflowStateInd", sa.String(length=8), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Workflow_Hist",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowDescription", sa.Text(), nullable=True),
+        sa.Column("WorkflowContextDescription", sa.Text(), nullable=True),
+        sa.Column("WorkflowStateInd", sa.String(length=8), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Role",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("RoleName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("RoleDescription", sa.Text(), nullable=True),
+        sa.Column("RoleContextDescription", sa.Text(), nullable=True),
+        sa.Column("RoleConfiguration", sa.Text(), nullable=True),
+        sa.Column("RoleConfigurationDescription", sa.Text(), nullable=True),
+        sa.Column("RoleConfigurationContextDescription", sa.Text(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Role_Hist",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("RoleName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("RoleDescription", sa.Text(), nullable=True),
+        sa.Column("RoleContextDescription", sa.Text(), nullable=True),
+        sa.Column("RoleConfiguration", sa.Text(), nullable=True),
+        sa.Column("RoleConfigurationDescription", sa.Text(), nullable=True),
+        sa.Column("RoleConfigurationContextDescription", sa.Text(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Interaction",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("InteractionName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("InteractionDescription", sa.Text(), nullable=True),
+        sa.Column("InteractionContextDescription", sa.Text(), nullable=True),
+        sa.Column("InteractionType", sa.String(length=64), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Interaction_Hist",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("InteractionName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("InteractionDescription", sa.Text(), nullable=True),
+        sa.Column("InteractionContextDescription", sa.Text(), nullable=True),
+        sa.Column("InteractionType", sa.String(length=64), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Guard",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("GuardName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("GuardDescription", sa.Text(), nullable=True),
+        sa.Column("GuardContextDescription", sa.Text(), nullable=True),
+        sa.Column("GuardType", sa.String(length=64), nullable=True),
+        sa.Column("GuardConfiguration", sa.Text(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Guard_Hist",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("GuardName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("GuardDescription", sa.Text(), nullable=True),
+        sa.Column("GuardContextDescription", sa.Text(), nullable=True),
+        sa.Column("GuardType", sa.String(length=64), nullable=True),
+        sa.Column("GuardConfiguration", sa.Text(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("InteractionComponent",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("InteractionComponentName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("InteractionComponentRelationShip", sa.Text(), nullable=True),
+        sa.Column("InteractionComponentDescription", sa.Text(), nullable=True),
+        sa.Column("InteractionComponentContextDescription", sa.Text(), nullable=True),
+        sa.Column("SourceName", sa.String(length=128), nullable=True),
+        sa.Column("TargetName", sa.String(length=128), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("InteractionComponent_Hist",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("InteractionComponentName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=True),
+        sa.Column("InteractionComponentRelationShip", sa.Text(), nullable=True),
+        sa.Column("InteractionComponentDescription", sa.Text(), nullable=True),
+        sa.Column("InteractionComponentContextDescription", sa.Text(), nullable=True),
+        sa.Column("SourceName", sa.String(length=128), nullable=True),
+        sa.Column("TargetName", sa.String(length=128), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("UnitOfWork",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("UnitOfWorkID", sa.String(length=128), nullable=False),
+        sa.Column("UnitOfWorkType", sa.String(length=64), nullable=True),
+        sa.Column("UnitOfWorkPayLoad", sa.Text(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("UnitOfWork_Hist",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("UnitOfWorkID", sa.String(length=128), nullable=False),
+        sa.Column("UnitOfWorkType", sa.String(length=64), nullable=True),
+        sa.Column("UnitOfWorkPayLoad", sa.Text(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Instance",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceDescription", sa.Text(), nullable=True),
+        sa.Column("InstanceContextDescription", sa.Text(), nullable=True),
+        sa.Column("InstanceState", sa.String(length=8), nullable=True),
+        sa.Column("InstanceStateDate", sa.DateTime(), nullable=True),
+        sa.Column("InstanceStartDate", sa.DateTime(), nullable=True),
+        sa.Column("InstanceEndDate", sa.DateTime(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table("Instance_Hist",
+        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("InstanceName", sa.String(length=128), nullable=False),
+        sa.Column("WorkflowName", sa.String(length=128), nullable=False),
+        sa.Column("InstanceDescription", sa.Text(), nullable=True),
+        sa.Column("InstanceContextDescription", sa.Text(), nullable=True),
+        sa.Column("InstanceState", sa.String(length=8), nullable=True),
+        sa.Column("InstanceStateDate", sa.DateTime(), nullable=True),
+        sa.Column("InstanceStartDate", sa.DateTime(), nullable=True),
+        sa.Column("InstanceEndDate", sa.DateTime(), nullable=True),
+        *_control_columns(),
+        sa.PrimaryKeyConstraint("id"),
+    )
 
 
 def downgrade() -> None:
     for name in [
-        "Instance_Hist",
-        "Instance",
-        "UnitOfWork_Hist",
-        "UnitOfWork",
-        "InteractionComponent_Hist",
-        "InteractionComponent",
-        "Guard_Hist",
-        "Guard",
-        "Interaction_Hist",
-        "Interaction",
-        "Role_Hist",
-        "Role",
-        "Workflow_Hist",
-        "Workflow",
+        "Instance_Hist", "Instance",
+        "UnitOfWork_Hist", "UnitOfWork",
+        "InteractionComponent_Hist", "InteractionComponent",
+        "Guard_Hist", "Guard",
+        "Interaction_Hist", "Interaction",
+        "Role_Hist", "Role",
+        "Workflow_Hist", "Workflow",
     ]:
         op.drop_table(name)

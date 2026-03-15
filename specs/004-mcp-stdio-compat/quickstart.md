@@ -41,7 +41,7 @@ npx @modelcontextprotocol/inspector
 
 Configure server command to:
 - Command: `python`
-- Args: `-m mcp_server.src.server`
+- Args: `c`git log --oneline -5
 
 Validate tool discovery includes:
 - `get_system_health`

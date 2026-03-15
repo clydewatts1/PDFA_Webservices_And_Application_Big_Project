@@ -8,34 +8,689 @@ resources:
     protocol: json-rpc
     endpoint: /rpc
 tools:
-  - get_system_health
-  - user_logon
-  - user_logoff
-  - workflow.create
-  - workflow.get
-  - workflow.list
-  - workflow.update
-  - workflow.delete
-  - role.create
-  - role.get
-  - role.list
-  - role.update
-  - role.delete
-  - interaction.create
-  - interaction.get
-  - interaction.list
-  - interaction.update
-  - interaction.delete
-  - guard.create
-  - guard.get
-  - guard.list
-  - guard.update
-  - guard.delete
-  - interaction_component.create
-  - interaction_component.get
-  - interaction_component.list
-  - interaction_component.update
-  - interaction_component.delete
+  - name: get_system_health
+    description: "Check MCP server and database health"
+    parameters: {}
+
+  - name: user_logon
+    description: "Authenticate a user with username and password"
+    parameters:
+      username:
+        type: string
+        required: true
+        description: "The username to authenticate"
+      password:
+        type: string
+        required: true
+        description: "The password for the user"
+
+  - name: user_logoff
+    description: "Log off an authenticated user"
+    parameters:
+      username:
+        type: string
+        required: true
+        description: "Username to log off"
+
+  - name: workflow.create
+    description: "Create a new workflow"
+    parameters:
+      WorkflowName:
+        type: string
+        required: true
+        description: "Unique name for the workflow"
+      WorkflowDescription:
+        type: string
+        required: true
+        description: "Human-readable workflow description"
+      WorkflowContextDescription:
+        type: string
+        required: true
+        description: "AI-friendly context description"
+      actor:
+        type: string
+        required: true
+        description: "User performing the action"
+
+  - name: workflow.list
+    description: "List all workflows with optional pagination"
+    parameters:
+      limit:
+        type: integer
+        required: false
+        description: "Max records to return"
+      offset:
+        type: integer
+        required: false
+        description: "Number of records to skip"
+
+  - name: workflow.get
+    description: "Get the active workflow by workflow name"
+    parameters:
+      WorkflowName:
+        type: string
+        required: true
+        description: "Unique name of the workflow"
+
+  - name: workflow.update
+    description: "Update an existing workflow and create a new active version"
+    parameters:
+      WorkflowName:
+        type: string
+        required: true
+        description: "Unique name of the workflow to update"
+      WorkflowDescription:
+        type: string
+        required: false
+        description: "Updated human-readable workflow description"
+      WorkflowContextDescription:
+        type: string
+        required: false
+        description: "Updated AI-friendly context description"
+      WorkflowStateInd:
+        type: string
+        required: false
+        description: "Workflow state indicator such as A or I"
+      actor:
+        type: string
+        required: true
+        description: "User performing the update"
+
+  - name: workflow.delete
+    description: "Soft-delete the active workflow by workflow name"
+    parameters:
+      WorkflowName:
+        type: string
+        required: true
+        description: "Unique name of the workflow to delete"
+      actor:
+        type: string
+        required: true
+        description: "User performing the delete"
+
+  - name: role.create
+    description: "Create a role for a workflow"
+    parameters:
+      RoleName:
+        type: string
+        required: true
+        description: "Short unique name of the role within the workflow"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      RoleDescription:
+        type: string
+        required: false
+        description: "Human-readable role description"
+      RoleContextDescription:
+        type: string
+        required: false
+        description: "AI-friendly role description"
+      RoleConfiguration:
+        type: string
+        required: false
+        description: "Role configuration payload, typically JSON as text"
+      RoleConfigurationDescription:
+        type: string
+        required: false
+        description: "Human-readable description of the role configuration"
+      RoleConfigurationContextDescription:
+        type: string
+        required: false
+        description: "AI-friendly description of the role configuration"
+      actor:
+        type: string
+        required: true
+        description: "User performing the create"
+
+  - name: role.get
+    description: "Get the active role by role name and workflow"
+    parameters:
+      RoleName:
+        type: string
+        required: true
+        description: "Role name"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+
+  - name: role.list
+    description: "List active roles, optionally filtered by workflow and paginated"
+    parameters:
+      WorkflowName:
+        type: string
+        required: false
+        description: "Optional workflow filter"
+      limit:
+        type: integer
+        required: false
+        description: "Max records to return"
+      offset:
+        type: integer
+        required: false
+        description: "Number of records to skip"
+
+  - name: role.update
+    description: "Update an existing role and create a new active version"
+    parameters:
+      RoleName:
+        type: string
+        required: true
+        description: "Role name to update"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      RoleDescription:
+        type: string
+        required: false
+        description: "Updated human-readable role description"
+      RoleContextDescription:
+        type: string
+        required: false
+        description: "Updated AI-friendly role description"
+      RoleConfiguration:
+        type: string
+        required: false
+        description: "Updated role configuration payload"
+      RoleConfigurationDescription:
+        type: string
+        required: false
+        description: "Updated human-readable configuration description"
+      RoleConfigurationContextDescription:
+        type: string
+        required: false
+        description: "Updated AI-friendly configuration description"
+      actor:
+        type: string
+        required: true
+        description: "User performing the update"
+
+  - name: role.delete
+    description: "Soft-delete the active role"
+    parameters:
+      RoleName:
+        type: string
+        required: true
+        description: "Role name to delete"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      actor:
+        type: string
+        required: true
+        description: "User performing the delete"
+
+  - name: interaction.create
+    description: "Create an interaction for a workflow"
+    parameters:
+      InteractionName:
+        type: string
+        required: true
+        description: "Short unique interaction name within the workflow"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      InteractionDescription:
+        type: string
+        required: false
+        description: "Human-readable interaction description"
+      InteractionContextDescription:
+        type: string
+        required: false
+        description: "AI-friendly interaction description"
+      InteractionType:
+        type: string
+        required: false
+        description: "Interaction type such as UI or INTERACTION"
+      actor:
+        type: string
+        required: true
+        description: "User performing the create"
+
+  - name: interaction.get
+    description: "Get the active interaction by interaction name and workflow"
+    parameters:
+      InteractionName:
+        type: string
+        required: true
+        description: "Interaction name"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+
+  - name: interaction.list
+    description: "List active interactions, optionally filtered by workflow and paginated"
+    parameters:
+      WorkflowName:
+        type: string
+        required: false
+        description: "Optional workflow filter"
+      limit:
+        type: integer
+        required: false
+        description: "Max records to return"
+      offset:
+        type: integer
+        required: false
+        description: "Number of records to skip"
+
+  - name: interaction.update
+    description: "Update an existing interaction and create a new active version"
+    parameters:
+      InteractionName:
+        type: string
+        required: true
+        description: "Interaction name to update"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      InteractionDescription:
+        type: string
+        required: false
+        description: "Updated human-readable interaction description"
+      InteractionContextDescription:
+        type: string
+        required: false
+        description: "Updated AI-friendly interaction description"
+      InteractionType:
+        type: string
+        required: false
+        description: "Updated interaction type"
+      actor:
+        type: string
+        required: true
+        description: "User performing the update"
+
+  - name: interaction.delete
+    description: "Soft-delete the active interaction"
+    parameters:
+      InteractionName:
+        type: string
+        required: true
+        description: "Interaction name to delete"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      actor:
+        type: string
+        required: true
+        description: "User performing the delete"
+
+  - name: guard.create
+    description: "Create a guard for a workflow"
+    parameters:
+      GuardName:
+        type: string
+        required: true
+        description: "Short unique guard name within the workflow"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      GuardDescription:
+        type: string
+        required: false
+        description: "Human-readable guard description"
+      GuardContextDescription:
+        type: string
+        required: false
+        description: "AI-friendly guard description"
+      GuardType:
+        type: string
+        required: false
+        description: "Guard type such as STANDARD"
+      GuardConfiguration:
+        type: string
+        required: false
+        description: "Guard configuration payload, typically JSON as text"
+      actor:
+        type: string
+        required: true
+        description: "User performing the create"
+
+  - name: guard.get
+    description: "Get the active guard by guard name and workflow"
+    parameters:
+      GuardName:
+        type: string
+        required: true
+        description: "Guard name"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+
+  - name: guard.list
+    description: "List active guards, optionally filtered by workflow and paginated"
+    parameters:
+      WorkflowName:
+        type: string
+        required: false
+        description: "Optional workflow filter"
+      limit:
+        type: integer
+        required: false
+        description: "Max records to return"
+      offset:
+        type: integer
+        required: false
+        description: "Number of records to skip"
+
+  - name: guard.update
+    description: "Update an existing guard and create a new active version"
+    parameters:
+      GuardName:
+        type: string
+        required: true
+        description: "Guard name to update"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      GuardDescription:
+        type: string
+        required: false
+        description: "Updated human-readable guard description"
+      GuardContextDescription:
+        type: string
+        required: false
+        description: "Updated AI-friendly guard description"
+      GuardType:
+        type: string
+        required: false
+        description: "Updated guard type"
+      GuardConfiguration:
+        type: string
+        required: false
+        description: "Updated guard configuration payload"
+      actor:
+        type: string
+        required: true
+        description: "User performing the update"
+
+  - name: guard.delete
+    description: "Soft-delete the active guard"
+    parameters:
+      GuardName:
+        type: string
+        required: true
+        description: "Guard name to delete"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      actor:
+        type: string
+        required: true
+        description: "User performing the delete"
+
+  - name: interaction_component.create
+    description: "Create an interaction component for a workflow"
+    parameters:
+      InteractionComponentName:
+        type: string
+        required: true
+        description: "Short unique interaction component name within the workflow"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      InteractionComponentRelationShip:
+        type: string
+        required: false
+        description: "Relationship expression for the interaction component"
+      InteractionComponentDescription:
+        type: string
+        required: false
+        description: "Human-readable interaction component description"
+      InteractionComponentContextDescription:
+        type: string
+        required: false
+        description: "AI-friendly interaction component description"
+      SourceName:
+        type: string
+        required: false
+        description: "Source endpoint name"
+      TargetName:
+        type: string
+        required: false
+        description: "Target endpoint name"
+      actor:
+        type: string
+        required: true
+        description: "User performing the create"
+
+  - name: interaction_component.get
+    description: "Get the active interaction component by name and workflow"
+    parameters:
+      InteractionComponentName:
+        type: string
+        required: true
+        description: "Interaction component name"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+
+  - name: interaction_component.list
+    description: "List active interaction components, optionally filtered by workflow and paginated"
+    parameters:
+      WorkflowName:
+        type: string
+        required: false
+        description: "Optional workflow filter"
+      limit:
+        type: integer
+        required: false
+        description: "Max records to return"
+      offset:
+        type: integer
+        required: false
+        description: "Number of records to skip"
+
+  - name: interaction_component.update
+    description: "Update an existing interaction component and create a new active version"
+    parameters:
+      InteractionComponentName:
+        type: string
+        required: true
+        description: "Interaction component name to update"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      InteractionComponentRelationShip:
+        type: string
+        required: false
+        description: "Updated relationship expression"
+      InteractionComponentDescription:
+        type: string
+        required: false
+        description: "Updated human-readable interaction component description"
+      InteractionComponentContextDescription:
+        type: string
+        required: false
+        description: "Updated AI-friendly interaction component description"
+      SourceName:
+        type: string
+        required: false
+        description: "Updated source endpoint name"
+      TargetName:
+        type: string
+        required: false
+        description: "Updated target endpoint name"
+      actor:
+        type: string
+        required: true
+        description: "User performing the update"
+
+  - name: interaction_component.delete
+    description: "Soft-delete the active interaction component"
+    parameters:
+      InteractionComponentName:
+        type: string
+        required: true
+        description: "Interaction component name to delete"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      actor:
+        type: string
+        required: true
+        description: "User performing the delete"
+
+  - name: unit_of_work.create
+    description: "Create a unit of work"
+    parameters:
+      UnitOfWorkID:
+        type: string
+        required: true
+        description: "Unique unit-of-work identifier"
+      UnitOfWorkType:
+        type: string
+        required: false
+        description: "Unit-of-work type"
+      UnitOfWorkPayLoad:
+        type: string
+        required: false
+        description: "Unit-of-work payload, typically JSON as text"
+      actor:
+        type: string
+        required: true
+        description: "User performing the create"
+
+  - name: unit_of_work.get
+    description: "Get the active unit of work by identifier"
+    parameters:
+      UnitOfWorkID:
+        type: string
+        required: true
+        description: "Unit-of-work identifier"
+
+  - name: unit_of_work.list
+    description: "List active units of work with optional pagination"
+    parameters:
+      limit:
+        type: integer
+        required: false
+        description: "Max records to return"
+      offset:
+        type: integer
+        required: false
+        description: "Number of records to skip"
+
+  - name: unit_of_work.update
+    description: "Update an existing unit of work and create a new active version"
+    parameters:
+      UnitOfWorkID:
+        type: string
+        required: true
+        description: "Unit-of-work identifier to update"
+      UnitOfWorkType:
+        type: string
+        required: false
+        description: "Updated unit-of-work type"
+      UnitOfWorkPayLoad:
+        type: string
+        required: false
+        description: "Updated unit-of-work payload"
+      actor:
+        type: string
+        required: true
+        description: "User performing the update"
+
+  - name: unit_of_work.delete
+    description: "Soft-delete the active unit of work"
+    parameters:
+      UnitOfWorkID:
+        type: string
+        required: true
+        description: "Unit-of-work identifier to delete"
+      actor:
+        type: string
+        required: true
+        description: "User performing the delete"
+
+  - name: instance.create
+    description: "Create a workflow instance and replicate design-time dependent records"
+    parameters:
+      InstanceName:
+        type: string
+        required: true
+        description: "Unique instance name"
+      WorkflowName:
+        type: string
+        required: true
+        description: "Parent workflow name"
+      InstanceDescription:
+        type: string
+        required: false
+        description: "Human-readable instance description"
+      InstanceContextDescription:
+        type: string
+        required: false
+        description: "AI-friendly instance description"
+      InstanceState:
+        type: string
+        required: false
+        description: "Initial instance state, defaults to A"
+      actor:
+        type: string
+        required: true
+        description: "User performing the create"
+
+  - name: instance.get
+    description: "Get the active instance by instance name"
+    parameters:
+      InstanceName:
+        type: string
+        required: true
+        description: "Instance name"
+
+  - name: instance.list
+    description: "List active instances, optionally filtered by workflow"
+    parameters:
+      WorkflowName:
+        type: string
+        required: false
+        description: "Optional workflow filter"
+
+  - name: instance.update_state
+    description: "Update the lifecycle state of an existing instance"
+    parameters:
+      InstanceName:
+        type: string
+        required: true
+        description: "Instance name to update"
+      InstanceState:
+        type: string
+        required: true
+        description: "New instance state: A, I, or P"
+      InstanceDescription:
+        type: string
+        required: false
+        description: "Updated human-readable instance description"
+      InstanceContextDescription:
+        type: string
+        required: false
+        description: "Updated AI-friendly instance description"
+      InstanceEndDate:
+        type: string
+        required: false
+        description: "Optional explicit end date in ISO-8601 string form"
+      actor:
+        type: string
+        required: true
+        description: "User performing the update"
 mock_users:
   reviewer: reviewer_pass
   test_user: test_pass

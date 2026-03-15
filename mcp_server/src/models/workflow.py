@@ -1,7 +1,7 @@
 """SQLAlchemy ORM models for Workflow and Workflow_Hist tables — T014."""
 from __future__ import annotations
 
-from sqlalchemy import Index, Integer, String, Text
+from sqlalchemy import Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from mcp_server.src.models.base import Base, ControlColumnsMixin
@@ -11,9 +11,8 @@ class Workflow(Base, ControlColumnsMixin):
     """Current-state table for Workflow entities.
 
     Business key: WorkflowName.
-    Active row invariant: exactly one row where DeleteInd=0 AND EffToDateTime=HIGH_DATE.
-    Closed rows (EffToDateTime < HIGH_DATE) remain in this table to allow DB-level auditing.
-    Surrogate PK `id` avoids unique-key violations when multiple temporal rows coexist.
+    Exactly one row exists per WorkflowName in this table.
+    Historical versions are written to Workflow_Hist.
     """
 
     __tablename__ = "Workflow"
@@ -25,8 +24,8 @@ class Workflow(Base, ControlColumnsMixin):
     WorkflowStateInd: Mapped[str | None] = mapped_column(String(8), nullable=True, default="A")
 
     __table_args__ = (
-        Index("ix_workflow_name", "WorkflowName"),
-        Index("ix_workflow_active", "WorkflowName", "DeleteInd", "EffToDateTime"),
+        UniqueConstraint("WorkflowName", name="uq_workflow_name"),
+        Index("ix_workflow_active", "DeleteInd", "EffToDateTime"),
     )
 
 
