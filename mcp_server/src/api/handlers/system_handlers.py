@@ -25,9 +25,9 @@ def _normalize_system_result(result: dict[str, Any], default_message: str) -> di
 
 def _validation_error_to_rpc(exc: ValidationError) -> JsonRpcError:
     return JsonRpcError(
-        code=4002,
-        message="ValidationError",
-        data={"code": exc.code, "message": str(exc)},
+        code=-32602,
+        message="Invalid params",
+        data={"reason": exc.code, "code": exc.code, "message": str(exc)},
     )
 
 

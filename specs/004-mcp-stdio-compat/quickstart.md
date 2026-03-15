@@ -41,7 +41,7 @@ npx @modelcontextprotocol/inspector
 
 Configure server command to:
 - Command: `python`
-- Args: `c`git log --oneline -5
+- Args: `-m mcp_server.src.server`
 
 Validate tool discovery includes:
 - `get_system_health`
@@ -53,6 +53,8 @@ Validate tool discovery includes:
 1. Execute identical health/auth/CRUD requests through stdio profile.
 2. Execute equivalent requests through HTTP/SSE profile (`POST /rpc`, `GET /sse`).
 3. Confirm equivalent status and status-message semantics across both transports.
+4. Confirm transport-level failures use JSON-RPC standard codes (`-32600`, `-32601`, `-32602`) and that project-specific diagnostics appear in `error.data`.
+5. Confirm `user_logoff` succeeds only after a prior successful `user_logon` in the same process and returns `ERROR` when no active session exists.
 
 ## 6) Manual Database Verification (Required Primary Path)
 After CRUD operations, verify persisted outcomes directly:

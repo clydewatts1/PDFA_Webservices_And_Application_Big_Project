@@ -70,7 +70,10 @@ This run includes test suites for:
 - `get_system_health` stdio status + message:
 - `get_system_health` HTTP status + message:
 - `user_logon` stdio and HTTP outcomes (success/denied/error):
-- `user_logoff` stdio and HTTP outcomes:
+- `user_logoff` stdio and HTTP outcomes (with active session):
+- `user_logoff` stdio and HTTP outcomes (without active session):
+- JSON-RPC transport error-code mapping checks (`-32600`, `-32601`, `-32602`):
+- `error.data` diagnostics parity checks:
 - Parity verification result (`status`, `status_message`):
 
 ### US3 CRUD + Data Verification Evidence Template
@@ -105,3 +108,21 @@ Observed parity result:
 - stdio status_message: `Health check completed`
 - http status_message: `Health check completed`
 - parity outcome: pass
+
+### Additional regression verification (2026-03-15)
+
+- Command: `pytest mcp_server/tests/ -q`
+- Exit code: `0`
+- Result: full MCP server suite passed
+
+### Phase 6 Closeout Evidence (Feature 004)
+
+- Task `T047` (Inspector-based parity smoke run): `PASS`
+	- Evidence source: transport parity smoke block above (Inspector stdio + HTTP JSON-RPC health parity)
+	- Outcome: equivalent `status`/`status_message` observed for stdio and HTTP
+- Task `T048` (Timed first-time reviewer dry-run): `PASS`
+	- Evidence source: timed dry-run block above
+	- Outcome: setup time `0.41` minutes and total flow `0.474` minutes, both within required thresholds
+- Protocol/error-session alignment checkpoints for closeout:
+	- JSON-RPC transport standard codes (`-32600`, `-32601`, `-32602`) validated in current contract behavior and regression tests
+	- Active-session-dependent `user_logoff` semantics verified by updated parity/test flow

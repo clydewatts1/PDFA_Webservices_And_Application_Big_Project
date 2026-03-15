@@ -13,7 +13,7 @@
 ## Requirement Clarity
 
 - [x] CHK004 Is “instance-scoped rows in fixed tables” defined with unambiguous identifying fields (for example, InstanceName/InstanceId scoping columns)? [Clarity, Spec §FR-022]
-- [x] CHK005 Is the rule “exactly one active current row per business key” quantified with precise active-row criteria (DeleteInd and EffToDateTime semantics)? [Clarity, Spec §FR-019, Spec §FR-020]
+- [x] CHK005 Is the rule “exactly one current primary-table row per business key” quantified with precise current-row criteria (DeleteInd and EffToDateTime semantics)? [Clarity, Spec §FR-019, Spec §FR-020]
 - [x] CHK006 Is deferred SSE behavior clearly bounded so readers know it is out of scope for acceptance in this increment? [Clarity, Spec §FR-018]
 
 ## Requirement Consistency
@@ -31,7 +31,7 @@
 ## Scenario & Edge Case Coverage
 
 - [x] CHK013 Are recovery requirements defined for partial failures during instantiation replication (for example, rollback/atomicity behavior)? [Coverage, Exception Flow, Spec §FR-021]
-- [x] CHK014 Are delete/re-activate lifecycle requirements defined for previously deleted rows under one-active-row constraints? [Coverage, Edge Case, Spec §FR-025, Spec §FR-026, Spec §FR-027]
+- [x] CHK014 Are delete/restoration lifecycle requirements defined for previously deleted rows under single-primary-row constraints? [Coverage, Edge Case, Spec §FR-025, Spec §FR-026, Spec §FR-027]
 - [x] CHK015 Are requirements explicit on how historical retrieval works when multiple versions share the same business key and close timestamps? [Coverage, Spec §FR-014, Spec §FR-028]
 
 ## Dependencies & Assumptions

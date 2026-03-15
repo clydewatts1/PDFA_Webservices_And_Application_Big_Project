@@ -1,7 +1,7 @@
 """SQLAlchemy ORM models for Role, Interaction, Guard, InteractionComponent, UnitOfWork — T021."""
 from __future__ import annotations
 
-from sqlalchemy import Index, Integer, String, Text
+from sqlalchemy import Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from mcp_server.src.models.base import Base, ControlColumnsMixin
@@ -12,7 +12,7 @@ from mcp_server.src.models.base import Base, ControlColumnsMixin
 # ---------------------------------------------------------------------------
 
 class Role(Base, ControlColumnsMixin):
-    """Current-state table for Role entities. Business key: (RoleName, WorkflowName)."""
+    """Current-state table for Role entities. One current row per business key."""
 
     __tablename__ = "Role"
 
@@ -56,7 +56,7 @@ class RoleHist(Base, ControlColumnsMixin):
 # ---------------------------------------------------------------------------
 
 class Interaction(Base, ControlColumnsMixin):
-    """Current-state table for Interaction entities. Business key: (InteractionName, WorkflowName)."""
+    """Current-state table for Interaction entities. One current row per business key."""
 
     __tablename__ = "Interaction"
 
@@ -96,7 +96,7 @@ class InteractionHist(Base, ControlColumnsMixin):
 # ---------------------------------------------------------------------------
 
 class Guard(Base, ControlColumnsMixin):
-    """Current-state table for Guard entities. Business key: (GuardName, WorkflowName)."""
+    """Current-state table for Guard entities. One current row per business key."""
 
     __tablename__ = "Guard"
 
@@ -138,7 +138,7 @@ class GuardHist(Base, ControlColumnsMixin):
 # ---------------------------------------------------------------------------
 
 class InteractionComponent(Base, ControlColumnsMixin):
-    """Current-state table for InteractionComponent. Business key: (InteractionComponentName, WorkflowName)."""
+    """Current-state table for InteractionComponent. One current row per business key."""
 
     __tablename__ = "InteractionComponent"
 
@@ -182,7 +182,7 @@ class InteractionComponentHist(Base, ControlColumnsMixin):
 # ---------------------------------------------------------------------------
 
 class UnitOfWork(Base, ControlColumnsMixin):
-    """Current-state table for UnitOfWork. Business key: UnitOfWorkID (global unique)."""
+    """Current-state table for UnitOfWork. One current row per UnitOfWorkID."""
 
     __tablename__ = "UnitOfWork"
 
@@ -192,7 +192,8 @@ class UnitOfWork(Base, ControlColumnsMixin):
     UnitOfWorkPayLoad: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
-        Index("ix_uow_active", "UnitOfWorkID", "DeleteInd", "EffToDateTime"),
+        UniqueConstraint("UnitOfWorkID", name="uq_unit_of_work_id"),
+        Index("ix_uow_active", "DeleteInd", "EffToDateTime"),
     )
 
 

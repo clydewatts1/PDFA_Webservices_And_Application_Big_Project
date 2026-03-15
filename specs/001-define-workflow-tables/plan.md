@@ -19,7 +19,7 @@ the Flask tier consumes MCP tools over HTTP JSON-RPC only for this increment.
 **Target Platform**: Windows/Linux developer machines  
 **Project Type**: Three-tier web service with temporary web interface  
 **Performance Goals**: p95 object-creation latency < 300ms in local environment  
-**Constraints**: Strict three-tier boundaries, SQLAlchemy only in MCP, JSON-RPC required (SSE deferred), one active current row per business key, phase-scoped environment variables (database-only for current schema phase)  
+**Constraints**: Strict three-tier boundaries, SQLAlchemy only in MCP, JSON-RPC required (SSE deferred), one current primary-table row per business key with prior versions in `_Hist`, phase-scoped environment variables (database-only for current schema phase)  
 **Scale/Scope**: Instructional MVP for schema, object creation, and deterministic current/history behavior
 
 ## Constitution Check
@@ -39,7 +39,7 @@ the Flask tier consumes MCP tools over HTTP JSON-RPC only for this increment.
   - fixed-table instantiation replication,
   - workflow-scoped composite key strategy,
   - JSON-RPC required / SSE deferred,
-  - one-active-current-row temporal lifecycle,
+  - one-current-row-plus-history temporal lifecycle,
   - object-factory-first architecture.
 
 ## Phase 1 Outputs (Design & Contracts)

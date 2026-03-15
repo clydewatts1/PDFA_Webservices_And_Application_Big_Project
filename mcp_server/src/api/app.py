@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, UTC
 import json
 import logging
 import os
@@ -93,20 +94,20 @@ def create_app() -> Flask:
 
         if payload.get("jsonrpc") != "2.0":
             logger.warning(json.dumps({"event": "mcp.request.invalid_version", "request_id": request_id}))
-            return _error(JsonRpcError(code=4000, message="Invalid JSON-RPC version"), request_id)
+            return _error(JsonRpcError(code=-32600, message="Invalid Request", data={"reason": "invalid_jsonrpc_version"}), request_id)
         if not isinstance(method, str):
             logger.warning(json.dumps({"event": "mcp.request.invalid_method_type", "request_id": request_id}))
-            return _error(JsonRpcError(code=4001, message="Method must be a string"), request_id)
+            return _error(JsonRpcError(code=-32600, message="Invalid Request", data={"reason": "method_must_be_string"}), request_id)
         if not isinstance(params, dict):
             logger.warning(json.dumps({"event": "mcp.request.invalid_params", "request_id": request_id}))
-            return _error(JsonRpcError(code=4002, message="Params must be an object"), request_id)
+            return _error(JsonRpcError(code=-32602, message="Invalid params", data={"reason": "params_must_be_object"}), request_id)
         if method not in handlers:
             logger.warning(
                 json.dumps(
                     {"event": "mcp.request.method_not_found", "request_id": request_id, "method": method}
                 )
             )
-            return _error(JsonRpcError(code=4004, message="Method not found", data={"method": method}), request_id)
+            return _error(JsonRpcError(code=-32601, message="Method not found", data={"method": method}), request_id)
 
         try:
             result = handlers[method](params)
@@ -138,6 +139,7 @@ def create_app() -> Flask:
                 "method": method,
                 "code": error.code,
                 "message": error.message,
+                "data": error.data or {},
             }
             event_line = f"event: error\ndata: {json.dumps(event_payload)}\n\n"
             for subscriber in list(subscribers):
@@ -167,7 +169,7 @@ def create_app() -> Flask:
                 )
             )
             return _error(
-                JsonRpcError(code=5000, message="Internal error", data={"reason": str(error)}),
+                JsonRpcError(code=-32603, message="Internal error", data={"reason": str(error)}),
                 request_id,
             )
 
@@ -183,6 +185,7 @@ def create_app() -> Flask:
             try:
                 ready_data = {
                     "event": "ready",
+                    "transport": "sse",
                     "status": "SUCCESS",
                     "status_message": "SSE stream connected",
                 }
@@ -192,7 +195,12 @@ def create_app() -> Flask:
                         message = subscriber.get(timeout=15)
                         yield message
                     except queue.Empty:
-                        heartbeat = {"event": "heartbeat", "status": "SUCCESS", "status_message": "alive"}
+                        heartbeat = {
+                            "event": "heartbeat",
+                            "timestamp": datetime.now(UTC).isoformat(),
+                            "status": "SUCCESS",
+                            "status_message": "alive",
+                        }
                         yield f"event: heartbeat\ndata: {json.dumps(heartbeat)}\n\n"
             finally:
                 if subscriber in subscribers:
@@ -207,7 +215,7 @@ def create_app() -> Flask:
 def register_runtime_handlers(app: Flask, mock_users: dict[str, str]) -> None:
     """Register workflow/dependent/instance/system handlers for runtime app."""
 
-    from mcp_server.src.lib.tool_adapter import build_runtime_tool_adapter
+    from mcp_server.src.services.auth_service import reset_auth_sessions
 
     session_factory = make_session_factory()
     for method, handler in build_runtime_tool_adapter(session_factory, mock_users).items():
@@ -222,6 +230,7 @@ def create_runtime_app(config_path: str | None = None) -> Flask:
     validate_mcp_config(config)
     validate_transport_compatibility(config)
     mock_users = get_mock_user_map(config)
+    reset_auth_sessions()
 
     app = create_app()
     register_runtime_handlers(app, mock_users)

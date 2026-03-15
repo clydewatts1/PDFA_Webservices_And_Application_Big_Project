@@ -60,7 +60,8 @@ Use inspector to invoke and verify:
    - Invalid credentials -> `DENIED`
    - Missing fields -> JSON-RPC validation error
 3. `user_logoff`
-   - Valid username -> `SUCCESS`
+   - Valid username with active session (after `user_logon`) -> `SUCCESS`
+   - Username without active session -> `ERROR`
 4. CRUD lifecycle for in-scope tables:
    - `workflow.*`
    - `role.*`
@@ -81,6 +82,11 @@ Use inspector to invoke and verify:
 1. Invoke `get_system_health`, `user_logon`, and `user_logoff` over stdio.
 2. Invoke equivalent requests over HTTP JSON-RPC (`POST /rpc`).
 3. Confirm parity for `status` and `status_message` semantics.
+4. Confirm JSON-RPC transport-level failures map to standard codes:
+   - invalid request envelope -> `-32600`
+   - method not found -> `-32601`
+   - invalid params -> `-32602`
+5. Confirm business/domain diagnostics are preserved in `error.data`.
 
 ## 6) End-to-end CRUD execution walkthrough
 1. Create a workflow and one dependent entity (`role.create` or `interaction.create`).

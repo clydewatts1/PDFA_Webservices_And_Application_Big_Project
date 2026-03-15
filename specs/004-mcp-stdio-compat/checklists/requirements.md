@@ -28,6 +28,9 @@
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
 - [x] No implementation details leak into specification
+- [x] Explicit protocol/transport gates verify JSON-RPC envelope compliance, standard transport error-code mapping, and `error.data` diagnostics rules
+- [x] Explicit parity gates verify stdio/HTTP/SSE required-tool-set alignment and equivalent business semantics for in-scope operations
+- [x] Explicit auth-session gates verify `user_logoff` success only after prior successful `user_logon`, plus deterministic error when session is absent
 
 ## Notes
 
@@ -35,3 +38,4 @@
 - No unresolved clarification markers.
 - Feature is ready for `/speckit.plan`.
 - Implementation progress reconciled on 2026-03-14: setup/foundation/US1 and selected US2-US3 tasks completed; remaining manual inspector evidence tasks are tracked in `tasks.md`.
+- 2026-03-15 gate update: protocol/parity/auth-session readiness items validated using `checklists/crud-evidence.md`.

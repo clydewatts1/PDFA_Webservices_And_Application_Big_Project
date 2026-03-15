@@ -64,7 +64,7 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] T004 Setup database schema and migrations framework in the MCP-owned data layer
 - [ ] T004a Define symmetric current and `_Hist` schemas with the required temporal and
-  audit columns in the MCP-owned data layer
+  audit columns, ensuring the primary table keeps only the current row per business key
 - [ ] T005 [P] Define MCP HTTP contracts (JSON-RPC/SSE) needed for the first delivery chunk
 - [ ] T006 [P] Setup MCP routing, tool handlers, and Flask client integration boundaries
 - [ ] T007 Create models and relationships for Workflow, Role, Interaction, Guard,
@@ -159,8 +159,8 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
 - [ ] TXXX Update README, directory-level README files where applicable, and source-attribution documentation for external references and AI usage
-- [ ] TXXX Verify current/`_Hist` symmetry and MCP-owned expire-and-insert behavior for any
-  persistence changes
+- [ ] TXXX Verify current/`_Hist` symmetry, one current row per business key, and MCP-owned
+  current-state plus history behavior for any persistence changes
 - [ ] TXXX Run quickstart.md validation
 
 ---

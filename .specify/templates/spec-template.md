@@ -111,8 +111,9 @@
   InteractionComponent, UnitOfWork, and Instance.
 - If the feature touches persistence, describe how current and `_Hist` tables remain
   structurally symmetric, how `EffFromDateTime`, `EffToDateTime`, `DeleteInd`,
-  `InsertUserName`, and `UpdateUserName` are preserved, and how MCP-owned expire-and-insert
-  logic maintains point-in-time integrity.
+  `InsertUserName`, and `UpdateUserName` are preserved, how the primary table keeps only
+  the current row per business key, and how MCP-owned current-state plus history logic
+  maintains point-in-time integrity.
 - List required environment variables or configuration changes.
 - Record external sources, AI prompts, and Spec Kit guidance referenced while producing the
   feature materials, and note any README or directory-level README expectations triggered by

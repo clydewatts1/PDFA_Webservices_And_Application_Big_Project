@@ -46,6 +46,10 @@ def _active_workflow(session: Session, workflow_name: str) -> Workflow | None:
 
 
 def _active_instance(session: Session, instance_name: str) -> Instance | None:
+	return session.query(Instance).filter_by(InstanceName=instance_name).first()
+
+
+def _listed_active_instance(session: Session, instance_name: str) -> Instance | None:
 	return (
 		session.query(Instance)
 		.filter_by(InstanceName=instance_name, DeleteInd=0)
@@ -224,43 +228,33 @@ def update_instance_state(session: Session, params: dict[str, Any], actor: str) 
 		raise MissingFieldError("InstanceState")
 	validate_instance_state(new_state)
 
-	active = _active_instance(session, instance_name)
+	active = _listed_active_instance(session, instance_name)
 	if active is None:
 		raise InstanceNotFoundError(instance_name)
 
 	now = utcnow_naive()
 	session.add(_copy_instance_to_hist(active, now, actor))
 
-	active.EffToDateTime = now
-	active.UpdateUserName = actor
-
 	end_date = params.get("InstanceEndDate")
 	if new_state in ("I", "P") and end_date is None:
 		end_date = now
 
-	replacement = Instance(
-		InstanceName=active.InstanceName,
-		WorkflowName=active.WorkflowName,
-		InstanceDescription=params.get("InstanceDescription", active.InstanceDescription),
-		InstanceContextDescription=params.get("InstanceContextDescription", active.InstanceContextDescription),
-		InstanceState=new_state,
-		InstanceStateDate=now,
-		InstanceStartDate=active.InstanceStartDate,
-		InstanceEndDate=end_date,
-		EffFromDateTime=now,
-		EffToDateTime=HIGH_DATE,
-		DeleteInd=0,
-		InsertUserName=actor,
-		UpdateUserName=actor,
-	)
-	session.add(replacement)
+	active.InstanceDescription = params.get("InstanceDescription", active.InstanceDescription)
+	active.InstanceContextDescription = params.get("InstanceContextDescription", active.InstanceContextDescription)
+	active.InstanceState = new_state
+	active.InstanceStateDate = now
+	active.InstanceEndDate = end_date
+	active.EffFromDateTime = now
+	active.EffToDateTime = HIGH_DATE
+	active.DeleteInd = 0
+	active.UpdateUserName = actor
 	session.commit()
-	session.refresh(replacement)
-	return _instance_to_dict(replacement)
+	session.refresh(active)
+	return _instance_to_dict(active)
 
 
 def get_instance(session: Session, instance_name: str) -> dict[str, Any]:
-	active = _active_instance(session, instance_name)
+	active = _listed_active_instance(session, instance_name)
 	if active is None:
 		raise InstanceNotFoundError(instance_name)
 	return _instance_to_dict(active)

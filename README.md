@@ -45,8 +45,8 @@ The project is governed by the constitution in .specify/memory/constitution.md.
 - Architecture is fixed to Database -> MCP Server -> Flask Web Server.
 - Flask must talk to MCP exclusively over HTTP using JSON-RPC and/or SSE.
 - SQLAlchemy is permitted only inside the MCP server layer.
-- Persisted domain tables must maintain symmetric current and `_Hist` schemas with
-	MCP-owned expire-and-insert history tracking.
+- Persisted domain tables must maintain symmetric current and `_Hist` schemas, with only
+	the current version in the primary table and prior versions tracked in `_Hist` by the MCP server.
 - Delivery proceeds in small chunks, starting with workflow table maintenance.
 - Development history must remain visible through meaningful Git commits.
 

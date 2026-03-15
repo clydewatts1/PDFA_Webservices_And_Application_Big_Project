@@ -13,6 +13,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp_server.src.db.session import make_session_factory
 from mcp_server.src.lib.mcp_config import ConfigError, get_mock_user_map, load_mcp_config
 from mcp_server.src.lib.tool_adapter import build_runtime_tool_adapter
+from mcp_server.src.services.auth_service import reset_auth_sessions
 from mcp_server.src.services.validation import ValidationError, validate_mcp_config, validate_transport_compatibility
 
 TYPE_MAP = {"string": str, "integer": int, "boolean": bool}
@@ -82,6 +83,7 @@ def create_stdio_server(config_path: str | None = None) -> Any:
     config = load_mcp_config(config_path)
     validate_mcp_config(config)
     validate_transport_compatibility(config)
+    reset_auth_sessions()
 
     mock_users = get_mock_user_map(config)
     handlers = build_runtime_tool_adapter(make_session_factory(), mock_users)

@@ -11,8 +11,8 @@ class Workflow(Base, ControlColumnsMixin):
     """Current-state table for Workflow entities.
 
     Business key: WorkflowName.
-    Exactly one row exists per WorkflowName in this table.
-    Historical versions are written to Workflow_Hist.
+    Exactly one current row exists per WorkflowName in this table.
+    Prior versions are written to Workflow_Hist.
     """
 
     __tablename__ = "Workflow"

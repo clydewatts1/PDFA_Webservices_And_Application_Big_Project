@@ -64,8 +64,8 @@
 - `instance.list`
 
 ## Required Behavioral Guarantees
-- Updates preserve exactly one active current row per business key.
-- Prior active rows are closed (`EffToDateTime`) and moved to history semantics.
+- Updates preserve exactly one current primary-table row per business key.
+- Prior primary-row states are snapshotted into `_Hist` with closing timestamps before the primary row is updated or deleted.
 - Instance creation replicates baseline dependent definitions as instance-scoped rows in fixed tables.
 - Runtime creation of per-instance physical tables is forbidden.
 

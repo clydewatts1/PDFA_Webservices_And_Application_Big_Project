@@ -108,18 +108,13 @@ class TestInstanceReplicationE2E:
         body = rpc(client, "instance.create", {"InstanceName": "INST-X", "WorkflowName": "NOPE", "actor": "u"})
         assert "error" in body
 
-    def test_update_state_creates_history_and_new_current_row(self, client, session_factory) -> None:
+    def test_update_state_creates_history_and_keeps_one_primary_row(self, client, session_factory) -> None:
         _seed_baseline(client, "WF-R4")
         rpc(client, "instance.create", {"InstanceName": "INST-S", "WorkflowName": "WF-R4", "actor": "u"})
         rpc(client, "instance.update_state", {"InstanceName": "INST-S", "InstanceState": "P", "actor": "u"}, rid=2)
 
         with session_factory() as session:
-            current = (
-                session.query(Instance)
-                .filter_by(InstanceName="INST-S", DeleteInd=0)
-                .filter(Instance.EffToDateTime == HIGH_DATE)
-                .all()
-            )
+            current = session.query(Instance).filter_by(InstanceName="INST-S").all()
             hist = session.query(InstanceHist).filter_by(InstanceName="INST-S").all()
         assert len(current) == 1
         assert current[0].InstanceState == "P"

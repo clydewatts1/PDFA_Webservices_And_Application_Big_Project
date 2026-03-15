@@ -115,7 +115,7 @@ class TestWorkflowLifecycle:
 
 class TestTemporalSemantics:
     def test_update_writes_prior_row_to_hist(self, client, session_factory) -> None:
-        """After update, the old active row must appear in Workflow_Hist."""
+        """After update, the old current row must appear in Workflow_Hist."""
         rpc(client, "workflow.create", {
             "WorkflowName": "HistWF",
             "WorkflowDescription": "original",
@@ -133,9 +133,8 @@ class TestTemporalSemantics:
         assert len(hist_rows) == 1
         assert hist_rows[0].WorkflowDescription == "original"
 
-    def test_update_closes_prior_current_row(self, client, session_factory) -> None:
-        """After update, only one active row must exist per WorkflowName."""
-        from mcp_server.src.models.base import HIGH_DATE
+    def test_update_keeps_only_one_primary_row(self, client, session_factory) -> None:
+        """After update, Workflow must keep only one row for the business key."""
         rpc(client, "workflow.create", {
             "WorkflowName": "CloseWF",
             "WorkflowDescription": "first",
@@ -149,14 +148,9 @@ class TestTemporalSemantics:
         }, request_id=2)
 
         with session_factory() as session:
-            active = (
-                session.query(Workflow)
-                .filter_by(WorkflowName="CloseWF", DeleteInd=0)
-                .filter(Workflow.EffToDateTime == HIGH_DATE)
-                .all()
-            )
-        assert len(active) == 1
-        assert active[0].WorkflowDescription == "second"
+            rows = session.query(Workflow).filter_by(WorkflowName="CloseWF").all()
+        assert len(rows) == 1
+        assert rows[0].WorkflowDescription == "second"
 
     def test_list_excludes_closed_rows(self, client, session_factory) -> None:
         """After update of ClosedRow_WF, list must return only the latest active row."""
@@ -176,8 +170,8 @@ class TestTemporalSemantics:
         assert len(matching) == 1
         assert matching[0]["WorkflowDescription"] == "v2"
 
-    def test_delete_sets_delete_ind_and_closes_row(self, client, session_factory) -> None:
-        """After delete, the Workflow current row must have DeleteInd=1 and EffToDateTime != HIGH_DATE."""
+    def test_delete_updates_the_single_primary_row(self, client, session_factory) -> None:
+        """After delete, the single Workflow row must be marked deleted and closed."""
         from mcp_server.src.models.base import HIGH_DATE
         rpc(client, "workflow.create", {
             "WorkflowName": "SoftDeleteWF",
@@ -199,8 +193,7 @@ class TestTemporalSemantics:
 # ---------------------------------------------------------------------------
 
 class TestActiveRowInvariant:
-    def test_only_one_active_row_after_multiple_updates(self, client, session_factory) -> None:
-        from mcp_server.src.models.base import HIGH_DATE
+    def test_only_one_primary_row_after_multiple_updates(self, client, session_factory) -> None:
         rpc(client, "workflow.create", {
             "WorkflowName": "MultiUpdateWF",
             "WorkflowDescription": "v1",
@@ -215,11 +208,6 @@ class TestActiveRowInvariant:
             }, request_id=int(v[1]) + 1)
 
         with session_factory() as session:
-            active = (
-                session.query(Workflow)
-                .filter_by(WorkflowName="MultiUpdateWF", DeleteInd=0)
-                .filter(Workflow.EffToDateTime == HIGH_DATE)
-                .all()
-            )
-        assert len(active) == 1
-        assert active[0].WorkflowDescription == "v4"
+            rows = session.query(Workflow).filter_by(WorkflowName="MultiUpdateWF").all()
+        assert len(rows) == 1
+        assert rows[0].WorkflowDescription == "v4"

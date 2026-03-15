@@ -35,6 +35,7 @@ def upgrade() -> None:
         sa.Column("WorkflowContextDescription", sa.Text(), nullable=True),
         sa.Column("WorkflowStateInd", sa.String(length=8), nullable=True),
         *_control_columns(),
+        sa.UniqueConstraint("WorkflowName", name="uq_workflow_name"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Workflow_Hist",
@@ -150,6 +151,7 @@ def upgrade() -> None:
         sa.Column("UnitOfWorkType", sa.String(length=64), nullable=True),
         sa.Column("UnitOfWorkPayLoad", sa.Text(), nullable=True),
         *_control_columns(),
+        sa.UniqueConstraint("UnitOfWorkID", name="uq_unit_of_work_id"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("UnitOfWork_Hist",
@@ -171,6 +173,7 @@ def upgrade() -> None:
         sa.Column("InstanceStartDate", sa.DateTime(), nullable=True),
         sa.Column("InstanceEndDate", sa.DateTime(), nullable=True),
         *_control_columns(),
+        sa.UniqueConstraint("InstanceName", name="uq_instance_name"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Instance_Hist",

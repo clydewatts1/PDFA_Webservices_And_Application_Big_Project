@@ -1,4 +1,8 @@
-"""Workflow CRUD service — current-row + history tracking."""
+"""Workflow CRUD service — current-state plus history — T015.
+
+All public functions accept an open SQLAlchemy Session and raise
+ServiceError subclasses that handlers map to JSON-RPC error codes.
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -16,13 +20,13 @@ class ServiceError(ValueError):
 
 
 class DuplicateKeyError(ServiceError):
-    def __init__(self, message: str = "A workflow with that name already exists.") -> None:
+    def __init__(self, message: str = "An active workflow with that name already exists.") -> None:
         super().__init__(message, code="duplicate_active_key")
 
 
 class WorkflowNotFoundError(ServiceError):
     def __init__(self, workflow_name: str) -> None:
-        super().__init__(f"Workflow '{workflow_name}' not found.", code="workflow_not_found")
+        super().__init__(f"Workflow '{workflow_name}' not found or not active.", code="workflow_not_found")
 
 
 class MissingFieldError(ServiceError):
@@ -67,6 +71,8 @@ def _row_to_dict(row: Workflow) -> dict[str, Any]:
 
 
 def _validate_pagination(limit: int | None, offset: int | None) -> tuple[int | None, int | None]:
+    """Validate optional pagination fields and normalize integer values."""
+
     if limit is not None and (not isinstance(limit, int) or limit <= 0):
         raise ServiceError("limit must be a positive integer", code="invalid_pagination")
     if offset is not None and (not isinstance(offset, int) or offset < 0):
@@ -75,35 +81,28 @@ def _validate_pagination(limit: int | None, offset: int | None) -> tuple[int | N
 
 
 def create_workflow(session: Session, params: dict[str, Any], actor: str) -> dict[str, Any]:
+    """Insert a new current Workflow row. Raises DuplicateKeyError if one already exists."""
     workflow_name = params.get("WorkflowName")
     if not workflow_name:
         raise MissingFieldError("WorkflowName")
 
-    now = utcnow_naive()
-    row = _current_row(session, workflow_name)
+    existing = _current_row(session, workflow_name)
+    if existing is not None:
+        raise DuplicateKeyError()
 
-    if row is None:
-        row = Workflow(
-            WorkflowName=workflow_name,
-            WorkflowDescription=params.get("WorkflowDescription"),
-            WorkflowContextDescription=params.get("WorkflowContextDescription"),
-            WorkflowStateInd=params.get("WorkflowStateInd", "A"),
-            EffFromDateTime=now,
-            EffToDateTime=HIGH_DATE,
-            DeleteInd=0,
-            InsertUserName=actor,
-            UpdateUserName=actor,
-        )
-        session.add(row)
-    else:
-        session.add(_snapshot_to_hist(row, now, actor))
-        row.WorkflowDescription = params.get("WorkflowDescription", row.WorkflowDescription)
-        row.WorkflowContextDescription = params.get("WorkflowContextDescription", row.WorkflowContextDescription)
-        row.WorkflowStateInd = params.get("WorkflowStateInd", row.WorkflowStateInd or "A")
-        row.EffFromDateTime = now
-        row.EffToDateTime = HIGH_DATE
-        row.DeleteInd = 0
-        row.UpdateUserName = actor
+    now = utcnow_naive()
+    row = Workflow(
+        WorkflowName=workflow_name,
+        WorkflowDescription=params.get("WorkflowDescription"),
+        WorkflowContextDescription=params.get("WorkflowContextDescription"),
+        WorkflowStateInd=params.get("WorkflowStateInd", "A"),
+        EffFromDateTime=now,
+        EffToDateTime=HIGH_DATE,
+        DeleteInd=0,
+        InsertUserName=actor,
+        UpdateUserName=actor,
+    )
+    session.add(row)
 
     session.commit()
     session.refresh(row)
@@ -111,6 +110,10 @@ def create_workflow(session: Session, params: dict[str, Any], actor: str) -> dic
 
 
 def update_workflow(session: Session, params: dict[str, Any], actor: str) -> dict[str, Any]:
+    """Copy the current row to history and update the primary current row in place.
+
+    Raises WorkflowNotFoundError if no current row exists.
+    """
     workflow_name = params.get("WorkflowName")
     if not workflow_name:
         raise MissingFieldError("WorkflowName")
@@ -136,6 +139,7 @@ def update_workflow(session: Session, params: dict[str, Any], actor: str) -> dic
 
 
 def get_workflow(session: Session, workflow_name: str) -> dict[str, Any]:
+    """Return the active row for *workflow_name*. Raises WorkflowNotFoundError if absent."""
     row = _current_row(session, workflow_name)
     if row is None or row.DeleteInd != 0:
         raise WorkflowNotFoundError(workflow_name)
@@ -148,6 +152,7 @@ def list_workflows(
     limit: int | None = None,
     offset: int | None = None,
 ) -> list[dict[str, Any]]:
+    """Return all active Workflow rows."""
     limit, offset = _validate_pagination(limit, offset)
     query = _active_filter(session.query(Workflow))
     if offset:
@@ -158,6 +163,7 @@ def list_workflows(
 
 
 def delete_workflow(session: Session, workflow_name: str, actor: str) -> dict[str, Any]:
+    """Soft-delete the current Workflow after writing its prior state to history."""
     row = _current_row(session, workflow_name)
     if row is None or row.DeleteInd != 0:
         raise WorkflowNotFoundError(workflow_name)

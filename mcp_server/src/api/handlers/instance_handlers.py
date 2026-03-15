@@ -25,7 +25,7 @@ def _extract_actor(params: dict[str, Any]) -> str:
 
     actor = params.get("actor")
     if not actor:
-        raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "actor"})
+        raise JsonRpcError(code=-32602, message="Invalid params", data={"reason": "missing_required_field", "field": "actor"})
     return actor
 
 
@@ -33,13 +33,13 @@ def _service_error_to_rpc(exc: Exception) -> JsonRpcError:
     """Map service and validation exceptions to JSON-RPC errors."""
 
     if isinstance(exc, ValidationError):
-        return JsonRpcError(code=4002, message="ValidationError", data={"code": exc.code, "message": str(exc)})
+        return JsonRpcError(code=-32602, message="Invalid params", data={"reason": exc.code, "code": exc.code, "message": str(exc)})
     if isinstance(exc, ServiceError):
         code_map = {
             "duplicate_active_key": 4009,
             "workflow_not_found": 4044,
             "instance_not_found": 4044,
-            "missing_required_field": 4002,
+            "missing_required_field": -32602,
         }
         return JsonRpcError(code=code_map.get(exc.code, 5000), message="ServiceError", data={"code": exc.code, "message": str(exc)})
     return JsonRpcError(code=5000, message="Internal error", data={"reason": str(exc)})
@@ -73,7 +73,7 @@ def make_instance_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
 
         name = params.get("InstanceName")
         if not name:
-            raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "InstanceName"})
+            raise JsonRpcError(code=-32602, message="Invalid params", data={"reason": "missing_required_field", "field": "InstanceName"})
         try:
             with session_factory() as session:
                 return get_instance(session, name)

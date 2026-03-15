@@ -16,6 +16,13 @@
 - Q: How must behavior differ between stdio and HTTP/SSE transports? → A: No behavior difference; both transports must expose the same tool set and status semantics.
 - Q: What are the canonical MCP transport endpoints and payload rules? → A: Use stdio launch command python -m mcp_server.src.server; expose HTTP JSON-RPC at POST /rpc (JSON-RPC 2.0 envelope: jsonrpc, id, method, params); expose SSE at GET /sse (text/event-stream) with events ready, tool_result, error, and heartbeat; enforce equivalent business-semantic outcomes across stdio, HTTP JSON-RPC, and SSE for equivalent tool inputs.
 
+### Session 2026-03-15
+
+- Q: Which CRUD families are required in Inspector discovery for this milestone? → A: Keep required scope limited to `workflow.*`, `role.*`, `interaction.*`, `guard.*`, and `interaction_component.*`; defer `unit_of_work.*` and `instance.*`.
+- Q: How should transport-level and domain-level errors be coded? → A: Use a hybrid model: transport-level failures use standard JSON-RPC error codes, while business/domain failures carry project-specific reason details in `error.data`.
+- Q: Should `user_logoff` require an active session? → A: Yes. `user_logoff` must require a tracked active session from a prior successful `user_logon`; otherwise return `ERROR`.
+- Q: Where should active auth sessions be tracked for this milestone? → A: Track sessions in process-local in-memory state; server restart clears active sessions.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Connect Inspector to MCP Server (Priority: P1)
@@ -69,6 +76,7 @@ As a reviewer, I need to run CRUD operations for the current workflow-domain tab
 - MCP configuration file is missing, malformed, or does not include required tool definitions.
 - Database is unavailable during startup or becomes unavailable during tool execution.
 - `user_logon` receives missing fields or malformed payloads.
+- `user_logoff` is called for a user with no active session.
 - CRUD tools receive missing primary key values, invalid pagination values, or out-of-scope table requests.
 - Reviewer environment is missing `npx` or SQLite CLI.
 
@@ -83,16 +91,22 @@ As a reviewer, I need to run CRUD operations for the current workflow-domain tab
 - **FR-002C**: HTTP JSON-RPC success responses MUST return JSON-RPC 2.0 result; errors MUST return JSON-RPC 2.0 error with code, message, and optional data.
 - **FR-002D**: SSE MUST be exposed at GET /sse with text/event-stream and MUST emit events ready, tool_result, error, and heartbeat.
 - **FR-002E**: SSE tool_result events MUST include, at minimum, request_id, method, status, and status_message.
+- **FR-002E1**: SSE ready events MUST include, at minimum, transport (`sse`), status, and status_message.
+- **FR-002E2**: SSE error events MUST include, at minimum, request_id (or `null` when unavailable), code, message, and optional data.
+- **FR-002E3**: SSE heartbeat events MUST include, at minimum, timestamp and status.
 - **FR-002F**: For equivalent tool inputs, stdio, HTTP JSON-RPC, and SSE MUST return equivalent business-semantic outcomes (status, status_message, and required tool fields), excluding transport metadata such as timestamps or connection identifiers.
-- **FR-002G**: Transport-level invalid requests MUST produce deterministic failures: invalid JSON-RPC envelope, unknown method, and missing required parameters MUST each map to documented error outcomes.
+- **FR-002G**: Transport-level invalid requests MUST produce deterministic failures: invalid JSON-RPC envelope, unknown method, and missing required parameters MUST each map to documented outcomes using standard JSON-RPC error codes.
+- **FR-002H**: Business/domain failures MUST preserve project-specific diagnostics in `error.data` (for example reason identifiers), while remaining transport-compliant.
 
-- **FR-003**: Inspector tool discovery MUST include `get_system_health`, `user_logon`, `user_logoff`, and dotted-name CRUD tool families (`workflow.create|get|list|update|delete`, `role.*`, `interaction.*`, `guard.*`, `interaction_component.*`) for `Workflow`, `Role`, `Interaction`, `Guard`, and `InteractionComponent`.
+- **FR-003**: Inspector tool discovery MUST include `get_system_health`, `user_logon`, `user_logoff`, and dotted-name CRUD tool families (`workflow.create|get|list|update|delete`, `role.*`, `interaction.*`, `guard.*`, `interaction_component.*`) for `Workflow`, `Role`, `Interaction`, `Guard`, and `InteractionComponent`. `unit_of_work.*` and `instance.*` are explicitly out of scope for required discovery in this milestone.
 - **FR-004**: MCP server configuration MUST use canonical filename `WB-Workflow-Configuration.yaml`.
 - **FR-005**: Database connectivity MUST be sourced from `.env` values aligned with `env.example`.
 - **FR-006**: `get_system_health` MUST return status values from `CONNECTED`, `DISCONNECTED`, `FAILED`, `INITIALIZING`, and `DEAD`, including failure details when applicable.
 - **FR-007**: `user_logon` MUST validate credentials against a YAML-defined in-memory plain-text mock user map and return `SUCCESS`, `DENIED`, or `ERROR` with appropriate status details.
 - **FR-008**: Mock authentication behavior MUST be explicitly documented as non-production only and MUST NOT be represented as production-safe authentication.
 - **FR-009**: `user_logoff` MUST return `SUCCESS` or `ERROR` with clear status details.
+- **FR-009A**: `user_logoff` MUST require a tracked active session created by a prior successful `user_logon` for the same username; if no active session exists, it MUST return `ERROR` with a deterministic reason.
+- **FR-009B**: Session tracking for this milestone MUST use process-local in-memory state and MUST reset on MCP server restart.
 - **FR-010**: CRUD tools for each in-scope table MUST provide create, get, list, update, and delete operations.
 - **FR-011**: CRUD responses MUST include normalized operation status (`SUCCESS` or `ERROR`) and status-message semantics.
 - **FR-012**: `get`, `update`, and `delete` operations MUST require primary-key identifier input.
@@ -100,7 +114,7 @@ As a reviewer, I need to run CRUD operations for the current workflow-domain tab
 - **FR-014**: The test runbook MUST include reproducible manual SQLite verification queries for in-scope tables and MAY include optional PostgreSQL-equivalent queries.
 - **FR-015**: Documentation MUST include negative-path verification for malformed/missing config, database failures, invalid auth payloads, and invalid CRUD inputs.
 - **FR-016**: Feature planning artifacts (spec, plan, tasks, and checklist) MUST include explicit MCP protocol/transport compatibility gates, not only endpoint existence checks.
-- **FR-017**: Both stdio and HTTP/SSE transports MUST expose the same required tool set and equivalent status/result semantics for all in-scope operations.
+- **FR-017**: Both stdio and HTTP/SSE transports MUST expose the same required tool set for all in-scope operations as defined by FR-003.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -129,6 +143,7 @@ As a reviewer, I need to run CRUD operations for the current workflow-domain tab
 - Canonical MCP CRUD tool naming remains dotted style (for example `workflow.create`) for this milestone.
 - Canonical Inspector stdio launch path is a dedicated MCP entrypoint module (`python -m mcp_server.src.server`), not the Flask JSON-RPC app module.
 - YAML mock credentials are for milestone testing only and are never production authentication controls.
+- Active auth sessions are ephemeral process-local state for this milestone and are not persisted across server restarts.
 
 ## Success Criteria *(mandatory)*
 

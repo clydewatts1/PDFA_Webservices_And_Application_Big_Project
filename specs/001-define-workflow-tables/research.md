@@ -16,8 +16,8 @@
 - Alternatives considered: JSON-RPC + SSE both mandatory; rejected as unnecessary scope expansion for first increment.
 
 ## Decision 4: Current/History Lifecycle Rule
-- Decision: Enforce exactly one active current row per business key; close prior active row (`EffToDateTime`) before activating replacement row.
-- Rationale: Removes ambiguity in reads, makes history deterministic, and supports strict temporal assertions in tests.
+- Decision: Enforce exactly one current primary-table row per business key; snapshot the pre-update row into `_Hist` with a closing timestamp before updating the primary row.
+- Rationale: Removes ambiguity in reads, keeps primary-table access simple, and preserves deterministic SCD Type-2 history in `_Hist`.
 - Alternatives considered: Multiple active rows with latest-timestamp resolution; rejected due to conflict risk and weaker invariants.
 
 ## Decision 5: Object-Creation Library Design

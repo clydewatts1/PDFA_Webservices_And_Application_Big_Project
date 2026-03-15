@@ -37,7 +37,7 @@ def _normalize_crud_result(payload: dict[str, Any], status_message: str) -> dict
 def _extract_actor(params: dict[str, Any]) -> str:
     actor = params.get("actor")
     if not actor:
-        raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "actor"})
+        raise JsonRpcError(code=-32602, message="Invalid params", data={"reason": "missing_required_field", "field": "actor"})
     return actor
 
 
@@ -46,8 +46,8 @@ def _service_error_to_rpc(exc: ServiceError) -> JsonRpcError:
     http_code_map = {
         "duplicate_active_key": 4009,     # Conflict
         "workflow_not_found": 4044,         # Not found
-        "missing_required_field": 4002,   # Bad request
-        "invalid_pagination": 4002,
+        "missing_required_field": -32602,
+        "invalid_pagination": -32602,
     }
     rpc_code = http_code_map.get(exc.code, 5000)
     return JsonRpcError(code=rpc_code, message="ServiceError", data={"code": exc.code, "message": str(exc)})
@@ -79,7 +79,7 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
     def _workflow_get(params: dict[str, Any]) -> dict[str, Any]:
         workflow_name = params.get("WorkflowName")
         if not workflow_name:
-            raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "WorkflowName"})
+            raise JsonRpcError(code=-32602, message="Invalid params", data={"reason": "missing_required_field", "field": "WorkflowName"})
         try:
             with session_factory() as session:
                 return _normalize_crud_result(get_workflow(session, workflow_name), "workflow.get completed")
@@ -102,7 +102,7 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
         actor = _extract_actor(params)
         workflow_name = params.get("WorkflowName")
         if not workflow_name:
-            raise JsonRpcError(code=4002, message="ValidationError", data={"code": "missing_required_field", "field": "WorkflowName"})
+            raise JsonRpcError(code=-32602, message="Invalid params", data={"reason": "missing_required_field", "field": "WorkflowName"})
         try:
             with session_factory() as session:
                 return _normalize_crud_result(delete_workflow(session, workflow_name, actor), "workflow.delete completed")

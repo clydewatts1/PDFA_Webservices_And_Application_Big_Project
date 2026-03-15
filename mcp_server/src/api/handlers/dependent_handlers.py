@@ -49,9 +49,9 @@ def _extract_actor(params: dict[str, Any]) -> str:
     actor = params.get("actor")
     if not actor:
         raise JsonRpcError(
-            code=4002,
-            message="ValidationError",
-            data={"code": "missing_required_field", "field": "actor"},
+            code=-32602,
+            message="Invalid params",
+            data={"reason": "missing_required_field", "field": "actor"},
         )
     return actor
 
@@ -61,8 +61,8 @@ def _service_error_to_rpc(exc: ServiceError) -> JsonRpcError:
         "duplicate_active_key": 4009,
         "entity_not_found": 4044,
         "invalid_workflow_reference": 4022,
-        "missing_required_field": 4002,
-        "invalid_pagination": 4002,
+        "missing_required_field": -32602,
+        "invalid_pagination": -32602,
     }
     rpc_code = code_map.get(exc.code, 5000)
     return JsonRpcError(
@@ -104,9 +104,9 @@ def make_entity_handlers(
             v = params.get(k)
             if not v:
                 raise JsonRpcError(
-                    code=4002,
-                    message="ValidationError",
-                    data={"code": "missing_required_field", "field": k},
+                    code=-32602,
+                    message="Invalid params",
+                    data={"reason": "missing_required_field", "field": k},
                 )
             bk[k] = v
         try:
@@ -137,9 +137,9 @@ def make_entity_handlers(
             v = params.get(k)
             if not v:
                 raise JsonRpcError(
-                    code=4002,
-                    message="ValidationError",
-                    data={"code": "missing_required_field", "field": k},
+                    code=-32602,
+                    message="Invalid params",
+                    data={"reason": "missing_required_field", "field": k},
                 )
             bk[k] = v
         try:

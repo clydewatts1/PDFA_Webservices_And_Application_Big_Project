@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_server.src.lib.tool_result import success_result
+from mcp_server.src.lib.tool_result import error_result, success_result
 from mcp_server.src.services.validation import ValidationError
+
+
+_ACTIVE_SESSIONS: set[str] = set()
 
 
 def _required_string(params: dict[str, Any], field: str) -> str:
@@ -30,6 +33,8 @@ def user_logon(params: dict[str, Any], mock_users: dict[str, str]) -> dict[str, 
             "username": username,
         }
 
+    _ACTIVE_SESSIONS.add(username)
+
     return success_result(
         status_message="Logon successful",
         payload={"username": username, "ErrorMessage": ""},
@@ -37,10 +42,24 @@ def user_logon(params: dict[str, Any], mock_users: dict[str, str]) -> dict[str, 
 
 
 def user_logoff(params: dict[str, Any]) -> dict[str, Any]:
-    """Return mock logoff status for provided username."""
+    """Return mock logoff status when an active session exists for username."""
 
     username = _required_string(params, "username")
+    if username not in _ACTIVE_SESSIONS:
+        return error_result(
+            status_message="No active session for username",
+            error_code="session_not_active",
+            payload={"username": username, "ErrorMessage": "No active session"},
+        )
+
+    _ACTIVE_SESSIONS.remove(username)
     return success_result(
         status_message="Logoff successful",
         payload={"username": username, "ErrorMessage": ""},
     )
+
+
+def reset_auth_sessions() -> None:
+    """Reset process-local in-memory auth sessions."""
+
+    _ACTIVE_SESSIONS.clear()

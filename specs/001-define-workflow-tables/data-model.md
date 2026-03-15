@@ -9,8 +9,8 @@ All current/history tables include:
 - `UpdateUserName` (required)
 
 Temporal invariant:
-- Exactly one active current row exists per business key.
-- On update, prior active row is closed by setting `EffToDateTime` before the replacement row is activated.
+- Exactly one current primary-table row exists per business key.
+- On update, the pre-update primary row is copied into `_Hist` with a closing timestamp before the primary row is updated.
 
 ## Entity Definitions
 

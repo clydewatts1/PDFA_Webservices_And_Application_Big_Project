@@ -33,11 +33,15 @@ Define acceptance contracts ensuring MCP stdio and HTTP/SSE transports are both 
 - JSON-RPC success responses MUST return result; errors MUST return error with code, message, optional data.
 - SSE MUST emit ready, tool_result, error, and heartbeat events.
 - SSE tool_result MUST include request_id, method, status, status_message.
+- SSE ready MUST include transport (`sse`), status, status_message.
+- SSE error MUST include request_id (or null), code, message, optional data.
+- SSE heartbeat MUST include timestamp and status.
 - For equivalent tool inputs, stdio, HTTP JSON-RPC, and SSE MUST return equivalent business-semantic outcomes (excluding transport metadata like timestamps/connection IDs).
 - Deterministic transport-level failures MUST map as follows:
-  - Invalid JSON-RPC envelope -> code `4000`, message `Invalid JSON-RPC version`
-  - Unknown method -> code `4004`, message `Method not found`
-  - Missing/invalid params object -> code `4002`, message `Params must be an object`
+  - Invalid JSON-RPC envelope -> code `-32600`, message `Invalid Request`
+  - Unknown method -> code `-32601`, message `Method not found`
+  - Missing/invalid params object -> code `-32602`, message `Invalid params`
+  - Project-specific diagnostics (for example, reason identifiers) MUST be carried in `error.data` and MUST NOT replace the transport-level standard code mapping.
 
 ### 4) Authentication Scope Contract
 - Mock auth uses YAML plain-text user map for milestone testing only.
@@ -66,7 +70,8 @@ Runbook MUST include:
 - `get_system_health` on both transports MUST expose equivalent `status`, `status_message`, and `health_status` semantics.
 - `user_logon` with invalid credentials MUST produce `DENIED` on both transports.
 - `user_logon` with malformed payload MUST produce `ERROR` semantics and deterministic validation error mapping.
-- `user_logoff` with valid username MUST produce `SUCCESS` semantics on both transports.
+- `user_logoff` with an active session from prior successful `user_logon` MUST produce `SUCCESS` semantics on both transports.
+- `user_logoff` without an active session MUST produce `ERROR` semantics with deterministic reason details.
 
 ### CRUD
 - `status`: `SUCCESS` or `ERROR`

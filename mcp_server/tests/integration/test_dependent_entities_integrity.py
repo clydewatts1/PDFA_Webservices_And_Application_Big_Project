@@ -118,7 +118,7 @@ class TestInvalidWorkflowLinkage:
 # ---------------------------------------------------------------------------
 
 class TestRoleTemporalInvariant:
-    def test_only_one_active_row_after_multiple_updates(self, client, session_factory) -> None:
+    def test_only_one_primary_row_after_multiple_updates(self, client, session_factory) -> None:
         _wf(client, "TemporalWF")
         rpc(client, "role.create", {"RoleName": "Developer", "WorkflowName": "TemporalWF", "actor": "u"})
         for desc in ("v2", "v3", "v4"):
@@ -128,14 +128,9 @@ class TestRoleTemporalInvariant:
             })
 
         with session_factory() as session:
-            active = (
-                session.query(Role)
-                .filter_by(RoleName="Developer", WorkflowName="TemporalWF", DeleteInd=0)
-                .filter(Role.EffToDateTime == HIGH_DATE)
-                .all()
-            )
-        assert len(active) == 1
-        assert active[0].RoleDescription == "v4"
+            rows = session.query(Role).filter_by(RoleName="Developer", WorkflowName="TemporalWF").all()
+        assert len(rows) == 1
+        assert rows[0].RoleDescription == "v4"
 
     def test_updates_write_prior_rows_to_history(self, client, session_factory) -> None:
         _wf(client, "HistWF2")
@@ -189,7 +184,7 @@ class TestInteractionTemporalSemantics:
             hist = session.query(InteractionHist).filter_by(InteractionName="S1", WorkflowName="IHistWF").all()
         assert len(hist) == 1
 
-    def test_only_one_active_interaction_after_update(self, client, session_factory) -> None:
+    def test_only_one_primary_interaction_after_update(self, client, session_factory) -> None:
         _wf(client, "IActiveWF")
         rpc(client, "interaction.create", {"InteractionName": "Step", "WorkflowName": "IActiveWF", "actor": "u"})
         rpc(client, "interaction.update", {
@@ -198,14 +193,9 @@ class TestInteractionTemporalSemantics:
         }, rid=2)
 
         with session_factory() as session:
-            active = (
-                session.query(Interaction)
-                .filter_by(InteractionName="Step", WorkflowName="IActiveWF", DeleteInd=0)
-                .filter(Interaction.EffToDateTime == HIGH_DATE)
-                .all()
-            )
-        assert len(active) == 1
-        assert active[0].InteractionType == "API"
+            rows = session.query(Interaction).filter_by(InteractionName="Step", WorkflowName="IActiveWF").all()
+        assert len(rows) == 1
+        assert rows[0].InteractionType == "API"
 
 
 # ---------------------------------------------------------------------------
@@ -220,12 +210,7 @@ class TestUnitOfWorkTemporal:
 
         with session_factory() as session:
             hist = session.query(UnitOfWorkHist).filter_by(UnitOfWorkID="UOW-T1").all()
-            active = (
-                session.query(UnitOfWork)
-                .filter_by(UnitOfWorkID="UOW-T1", DeleteInd=0)
-                .filter(UnitOfWork.EffToDateTime == HIGH_DATE)
-                .all()
-            )
+            rows = session.query(UnitOfWork).filter_by(UnitOfWorkID="UOW-T1").all()
         assert len(hist) == 1
-        assert len(active) == 1
-        assert active[0].UnitOfWorkType == "v2"
+        assert len(rows) == 1
+        assert rows[0].UnitOfWorkType == "v2"

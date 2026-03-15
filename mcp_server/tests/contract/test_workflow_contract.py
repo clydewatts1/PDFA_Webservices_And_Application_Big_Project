@@ -50,18 +50,18 @@ def _rpc(client, method: str, params: dict, request_id: int = 1):
 # ---------------------------------------------------------------------------
 
 class TestProtocolEnvelope:
-    def test_wrong_jsonrpc_version_returns_4000(self, mcp_client) -> None:
+    def test_wrong_jsonrpc_version_returns_standard_code(self, mcp_client) -> None:
         resp = mcp_client.post(
             "/rpc",
             data=json.dumps({"jsonrpc": "1.0", "id": 1, "method": "workflow.create", "params": {}}),
             content_type="application/json",
         )
         body = resp.get_json()
-        assert body["error"]["code"] == 4000
+        assert body["error"]["code"] == -32600
 
-    def test_unknown_method_returns_4004(self, mcp_client) -> None:
+    def test_unknown_method_returns_standard_code(self, mcp_client) -> None:
         body = _rpc(mcp_client, "nonexistent.method", {})
-        assert body["error"]["code"] == 4004
+        assert body["error"]["code"] == -32601
 
     def test_success_response_has_jsonrpc_field(self, mcp_client) -> None:
         body = _rpc(mcp_client, "workflow.create", {

@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
-Version change: 1.2.0 -> 1.3.0
+Version change: 1.3.0 -> 2.0.0
 Modified principles:
-- III. SQLAlchemy Containment and Data Access Encapsulation (expanded with temporal/SCD Type-2 persistence requirements)
+- III.a Temporal/SCD Type-2 Mandate (redefined from mirrored current-table versioning to current-state plus history)
 Added sections:
-- III.a Temporal/SCD Type-2 Mandate
+- None
 Removed sections:
 - None
 Templates requiring updates:
@@ -13,7 +13,7 @@ Templates requiring updates:
 - ✅ .specify/templates/tasks-template.md
 - ✅ README.md
 Follow-up TODOs:
-- None
+- Update persistence services and tests to stop accumulating closed versions in primary tables
 -->
 # PDFA Webservices and Application Big Project Constitution
 
@@ -49,12 +49,14 @@ Every persisted domain table MUST have a structurally identical `_Hist` counterp
 Every current and history table MUST include `EffFromDateTime`, `EffToDateTime`,
 `DeleteInd`, `InsertUserName`, and `UpdateUserName`. The current table represents the
 point-in-time active record where `EffToDateTime` remains in the future and `DeleteInd`
-is `0`. The MCP server MUST own the expire-and-insert logic for every update: it MUST set
-the existing record's `EffToDateTime` to the current timestamp, insert the new version
-with `EffFromDateTime` set to the current timestamp, and synchronize those changes across
-both the primary table and the matching `_Hist` table within one transaction. Rationale:
-symmetric schema and MCP-owned temporal orchestration are required for auditable SCD
-Type-2 behavior and point-in-time correctness.
+is `0`, and it MUST contain only the single current version for a business key. The
+matching `_Hist` table MUST contain prior versions of that record using the same business,
+temporal, and audit columns. The MCP server MUST own the current-state plus history
+orchestration for every update: it MUST copy the pre-update primary row into `_Hist` with
+the correct closing timestamp, then update or replace the single current row in the
+primary table within the same transaction. Rationale: symmetric schema with a single-row
+current table keeps reads simple while preserving auditable SCD Type-2 history and
+point-in-time correctness.
 
 
 ### IV. Incremental Graph-Model Delivery
@@ -86,7 +88,8 @@ of the development process, balancing human readability with strict grading rubr
 - The MCP server MUST own SQLAlchemy models, session handling, migrations, and relationship
 	enforcement for the seven-table workflow schema.
 - Every persisted domain entity MUST preserve symmetric current and `_Hist` schemas with
-	the mandated temporal and audit columns.
+	the mandated temporal and audit columns, while keeping only the current version in the
+	primary table and prior versions in `_Hist`.
 - The Flask web server MUST treat MCP responses as its system of record for data access and
 	MUST NOT mirror persistence logic locally.
 - Any feature that changes schema shape, HTTP contracts, or event streams MUST update the
@@ -102,7 +105,8 @@ of the development process, balancing human readability with strict grading rubr
 	which MCP contracts are added or changed, whether schema integrity rules are impacted, and
 	which environment variables or deployment settings are required.
 - Reviews MUST reject any change that breaks current/`_Hist` symmetry, omits mandated
-	temporal columns, or moves expire-and-insert logic outside the MCP server.
+	temporal columns, stores closed historical versions in the primary table, or moves
+	current-state plus history orchestration outside the MCP server.
 - Reviews MUST reject any change that breaks the three-tier boundary, introduces direct
 	database access outside MCP, omits required documentation for external sources, or leaves
 	commit history too coarse to show development progress.
@@ -121,14 +125,15 @@ task, and implementation review time.
 Versioning policy follows semantic versioning for governance documents: MAJOR for
 backward-incompatible principle removals or redefinitions, MINOR for new principles or
 materially expanded sections, and PATCH for clarifications that do not alter required
-behavior. This amendment adds a new mandatory temporal/SCD Type-2 persistence rule and is
-therefore released as version 1.3.0.
+behavior. This amendment redefines III.a from mirrored temporal current-table behavior to
+a single-row current-table plus `_Hist` model and is therefore released as version 2.0.0.
 
 Every implementation review MUST verify that the current work respects the Database -> MCP
 Server -> Flask Web Server boundary, preserves MCP-over-HTTP communication, keeps
 SQLAlchemy confined to the MCP tier, maintains seven-table workflow schema integrity where
-relevant, preserves current/`_Hist` symmetry with MCP-owned expire-and-insert logic,
-documents environment variables, records external-source attribution, and follows the
-project's docstring and README requirements.
+relevant, preserves current/`_Hist` symmetry with only one current row per business key,
+keeps prior versions in `_Hist` under MCP-owned transaction control, documents
+environment variables, records external-source attribution, and follows the project's
+docstring and README requirements.
 
-**Version**: 1.3.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-15
+**Version**: 2.0.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-15

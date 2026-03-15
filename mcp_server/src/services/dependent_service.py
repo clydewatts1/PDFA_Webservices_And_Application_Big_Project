@@ -1,4 +1,4 @@
-"""Generic temporal CRUD service for dependent entities — T022.
+"""Generic current-state plus history CRUD service for dependent entities — T022.
 
 Supports Role, Interaction, Guard, InteractionComponent, UnitOfWork via
 EntityConfig dataclasses. All public functions accept an open SQLAlchemy
@@ -133,6 +133,12 @@ def _row_to_dict(row: Any) -> dict[str, Any]:
 
 
 def _get_active(session: Session, config: EntityConfig, bk_values: dict[str, Any]) -> Any | None:
+	"""Return the current row for *bk_values* regardless of active/delete state."""
+
+	return session.query(config.model_class).filter_by(**bk_values).first()
+
+
+def _get_listed_active(session: Session, config: EntityConfig, bk_values: dict[str, Any]) -> Any | None:
 	return (
 		session.query(config.model_class)
 		.filter_by(**bk_values, DeleteInd=0)
@@ -205,33 +211,26 @@ def update_entity(session: Session, config: EntityConfig, params: dict[str, Any]
 			raise MissingFieldError(key)
 
 	bk = {k: params[k] for k in config.business_keys}
-	active = _get_active(session, config, bk)
-	if active is None:
+	row = _get_active(session, config, bk)
+	if row is None:
 		raise EntityNotFoundError(config.entity_name, str(bk))
 
 	now = utcnow_naive()
-	session.add(_copy_to_hist(config, active, now, actor))
+	session.add(_copy_to_hist(config, row, now, actor))
 
-	active.EffToDateTime = now
-	active.UpdateUserName = actor
-
-	merged = {f: params.get(f, getattr(active, f)) for f in config.all_fields}
-	new_row = config.model_class(
-		**merged,
-		EffFromDateTime=now,
-		EffToDateTime=HIGH_DATE,
-		DeleteInd=0,
-		InsertUserName=actor,
-		UpdateUserName=actor,
-	)
-	session.add(new_row)
+	for field in config.all_fields:
+		setattr(row, field, params.get(field, getattr(row, field)))
+	row.EffFromDateTime = now
+	row.EffToDateTime = HIGH_DATE
+	row.DeleteInd = 0
+	row.UpdateUserName = actor
 	session.commit()
-	session.refresh(new_row)
-	return _row_to_dict(new_row)
+	session.refresh(row)
+	return _row_to_dict(row)
 
 
 def get_entity(session: Session, config: EntityConfig, bk_values: dict[str, Any]) -> dict[str, Any]:
-	active = _get_active(session, config, bk_values)
+	active = _get_listed_active(session, config, bk_values)
 	if active is None:
 		raise EntityNotFoundError(config.entity_name, str(bk_values))
 	return _row_to_dict(active)
@@ -266,7 +265,7 @@ def delete_entity(
 	bk_values: dict[str, Any],
 	actor: str,
 ) -> dict[str, Any]:
-	active = _get_active(session, config, bk_values)
+	active = _get_listed_active(session, config, bk_values)
 	if active is None:
 		raise EntityNotFoundError(config.entity_name, str(bk_values))
 
