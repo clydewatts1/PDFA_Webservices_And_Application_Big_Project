@@ -15,6 +15,7 @@
 - Q: Which entity attributes should be visible in create/edit forms? → A: Hide temporal/audit columns (`eff_from_datetime`, `eff_to_datetime`, `delete_ind`, `insert_user_name`, `update_user_name`); show business attributes only. MCP backend manages all temporal/audit logic per Constitution Principle III.a.
 - Q: How should the MCP session be initialized when Quart starts? → A: Create session in app factory (`create_app()`); validate connectivity on first `GET /` health check, not at startup. Supports independent tier startup and cloud-native loose coupling.
 - Q: How should POST routes be protected against Cross-Site Request Forgery (CSRF)? → A: Use `quart-wtf` CSRFProtect extension; add `{{ form.csrf_token }}` hidden input to every POST form; validate token automatically on submit via `CSRFProtect(app)`.
+- Q: Which directory is the canonical root for the Quart web tier source code and templates? → A: `quart_web/` — the new async web tier lives under `quart_web/src/`, including `quart_web/src/templates/`. The existing `flask_web/` directory is the legacy synchronous tier and is not modified by this feature.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -220,7 +221,7 @@ All HTML forms that submit via HTTP POST (login, workflow selection, create/edit
 All Quart routes MUST use `async def` syntax and `await` MCP calls to support concurrent request handling without blocking.
 
 **NFR-002: Template Organization**  
-Jinja2 templates MUST be organized in `flask_web/src/templates/` with subdirectories for entity types (e.g., `roles/`, `workflows/`) and shared components (e.g., `_navigation.html`, `_form_errors.html`).
+Jinja2 templates MUST be organized in `quart_web/src/templates/` with subdirectories for entity types (e.g., `roles/`, `workflows/`) and shared components (e.g., `_navigation.html`, `_form_errors.html`). The legacy `flask_web/` directory is not modified by this feature.
 
 **NFR-003: Error Handling & User Feedback**  
 MCP tool errors MUST be caught, translated to user-friendly messages, and rendered in templates. Generic error page MUST be available for unhandled exceptions.
