@@ -14,6 +14,7 @@
 - Q: What should happen when a form submission returns validation errors? → A: Re-render the form on the same page with user input preserved in session. Standard web behavior; preserves user context.
 - Q: Which entity attributes should be visible in create/edit forms? → A: Hide temporal/audit columns (`eff_from_datetime`, `eff_to_datetime`, `delete_ind`, `insert_user_name`, `update_user_name`); show business attributes only. MCP backend manages all temporal/audit logic per Constitution Principle III.a.
 - Q: How should the MCP session be initialized when Quart starts? → A: Create session in app factory (`create_app()`); validate connectivity on first `GET /` health check, not at startup. Supports independent tier startup and cloud-native loose coupling.
+- Q: How should POST routes be protected against Cross-Site Request Forgery (CSRF)? → A: Use `quart-wtf` CSRFProtect extension; add `{{ form.csrf_token }}` hidden input to every POST form; validate token automatically on submit via `CSRFProtect(app)`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -207,6 +208,9 @@ Delete action MUST show confirmation page before processing. Confirmation submis
 
 **FR-013: Session Timeout & Re-authentication**  
 Routes MUST check for valid session; missing or expired session MUST redirect to login page. Logout route (`POST /logout`) MUST call MCP `user_logoff` tool and clear session cookie.
+
+**FR-014: CSRF Protection on All POST Routes**  
+All HTML forms that submit via HTTP POST (login, workflow selection, create/edit/delete entity) MUST include a CSRF token hidden input rendered via `{{ form.csrf_token }}`. The application MUST use `quart-wtf` `CSRFProtect(app)` initialised in the app factory. Any POST request missing or carrying an invalid CSRF token MUST return HTTP 400 and re-render the originating form with an error message. CSRF protection MUST NOT be disabled in the test suite; tests MUST supply a valid token via the test client or disable with `WTF_CSRF_ENABLED = False` in test config only.
 
 ---
 
