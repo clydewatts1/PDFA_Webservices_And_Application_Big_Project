@@ -1,4 +1,4 @@
-"""MCP JSON-RPC application bootstrap and transport envelope handlers."""
+"""Runtime bootstrap helpers for FastMCP and legacy Flask test app."""
 
 from __future__ import annotations
 
@@ -13,9 +13,13 @@ from typing import Any, Callable
 
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request, stream_with_context
+from mcp.server.fastmcp import FastMCP
 
+from mcp_server.src.api.errors import JsonRpcError
 from mcp_server.src.db.session import make_session_factory
 from mcp_server.src.lib.mcp_config import ConfigError, get_mock_user_map, load_mcp_config
+from mcp_server.src.lib.tool_adapter import build_runtime_tool_adapter
+from mcp_server.src.lib.tool_catalog import register_in_scope_tools
 from mcp_server.src.services.auth_service import reset_auth_sessions
 from mcp_server.src.services.validation import ValidationError, validate_mcp_config, validate_transport_compatibility
 
@@ -23,16 +27,6 @@ from mcp_server.src.services.validation import ValidationError, validate_mcp_con
 logger = logging.getLogger("pdfa.mcp")
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO)
-
-
-@dataclass
-class JsonRpcError(Exception):
-    """Structured JSON-RPC error payload container."""
-
-    code: int
-    message: str
-    data: dict[str, Any] | None = None
-
 
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
@@ -213,18 +207,8 @@ def create_app() -> Flask:
     return app
 
 
-def register_runtime_handlers(app: Flask, mock_users: dict[str, str]) -> None:
-    """Register workflow/dependent/instance/system handlers for runtime app."""
-
-    from mcp_server.src.lib.tool_adapter import build_runtime_tool_adapter
-
-    session_factory = make_session_factory()
-    for method, handler in build_runtime_tool_adapter(session_factory, mock_users).items():
-        app.register_jsonrpc_handler(method, handler)  # type: ignore[attr-defined]
-
-
-def create_runtime_app(config_path: str | None = None) -> Flask:
-    """Build a production runtime app with config and default handlers loaded."""
+def create_fastmcp_runtime(config_path: str | None = None) -> FastMCP:
+    """Build a FastMCP runtime with in-scope tools registered from Python metadata."""
 
     load_dotenv()
     config = load_mcp_config(config_path)
@@ -233,9 +217,17 @@ def create_runtime_app(config_path: str | None = None) -> Flask:
     mock_users = get_mock_user_map(config)
     reset_auth_sessions()
 
-    app = create_app()
-    register_runtime_handlers(app, mock_users)
-    return app
+    server_name = str(config.get("server_name", "WB-Workflow-Configuration"))
+    runtime = FastMCP(server_name)
+    handlers = build_runtime_tool_adapter(make_session_factory(), mock_users)
+    register_in_scope_tools(runtime, handlers)
+    return runtime
+
+
+def create_runtime_app(config_path: str | None = None) -> FastMCP:
+    """Build the active production runtime using the FastMCP framework."""
+
+    return create_fastmcp_runtime(config_path=config_path)
 
 
 app = create_app()
@@ -250,4 +242,6 @@ if __name__ == "__main__":
 
     host = os.getenv("MCP_HOST", "127.0.0.1")
     port = int(os.getenv("MCP_PORT", "5001"))
-    runtime_app.run(host=host, port=port, debug=False)
+    runtime_app.settings.host = host
+    runtime_app.settings.port = port
+    runtime_app.run(transport=os.getenv("MCP_TRANSPORT", "sse"))

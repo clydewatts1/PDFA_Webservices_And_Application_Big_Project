@@ -8,6 +8,14 @@
         "DB_URL": "sqlite:///./local.db",
         "DEFAULT_ACTOR": "local_dev"
       }
+    },
+    "local-sse": {
+      "type": "sse",
+      "url": "http://127.0.0.1:5001/sse"
+    },
+    "local-streamable-http": {
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:5001/mcp"
     }
   }
 }
