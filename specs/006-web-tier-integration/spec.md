@@ -18,6 +18,7 @@
 - Q: Which directory is the canonical root for the Quart web tier source code and templates? → A: `quart_web/` — the new async web tier lives under `quart_web/src/`, including `quart_web/src/templates/`. The existing `flask_web/` directory is the legacy synchronous tier and is not modified by this feature.
 - Q: What is the canonical environment variable name and value format for the MCP backend endpoint? → A: Single variable `MCP_SERVER_URL=http://127.0.0.1:5001/sse` (full SSE URL). Default dev value is `http://127.0.0.1:5001/sse`. Eliminates the split `MCP_HOST`/`MCP_PORT` pattern; simpler to configure and avoids path-assembly bugs.
 - Q: What timeout policy applies to MCP tool calls in CRUD routes? → A: All MCP tool calls MUST time out after 10 seconds via `asyncio.wait_for()`. On timeout, the route MUST render a user-visible error page with a retry link. The 10-second limit applies uniformly to all tools (list, fetch, create, update, delete).
+- Q: How should forms prevent double-submission during the MCP round-trip? → A: All POST form submit buttons MUST include `onclick="this.disabled=true; this.form.submit()"`. No additional JavaScript libraries or loading spinners are required; this is the only permitted JS expression in templates.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -186,7 +187,7 @@ The web tier MUST use the official Python MCP SDK (mcp.client.http.http_client) 
 Route-level unit tests MUST use `AsyncMock` to mock the MCP session rather than making real network calls. Test suite MUST verify Quart routes in isolation from the actual MCP server (Constitution Principle VI).
 
 **FR-005: Clean Traditional UI with Bootstrap 5**  
-All HTML templates MUST use Bootstrap 5 CSS framework for consistent, clean aesthetic (ample whitespace, readable fonts, simple tables). Navigation MUST use standard full-page GET/POST requests; no AJAX or dynamic partial updates.
+All HTML templates MUST use Bootstrap 5 CSS framework for consistent, clean aesthetic (ample whitespace, readable fonts, simple tables). Navigation MUST use standard full-page GET/POST requests; no AJAX or dynamic partial updates. All POST form submit buttons MUST include the attribute `onclick="this.disabled=true; this.form.submit()"` to prevent double-submission during MCP round-trips. This is the only JavaScript expression permitted in templates; no JS state management, event listeners, or framework code is allowed.
 
 **FR-006: Health Check on Landing Page**  
 Landing page (`GET /`) MUST call MCP `get_system_health` on each load and display status. Login form MUST be functionally disabled if health check fails.
