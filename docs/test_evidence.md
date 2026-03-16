@@ -126,3 +126,34 @@ Observed parity result:
 - Protocol/error-session alignment checkpoints for closeout:
 	- JSON-RPC transport standard codes (`-32600`, `-32601`, `-32602`) validated in current contract behavior and regression tests
 	- Active-session-dependent `user_logoff` semantics verified by updated parity/test flow
+
+## Feature 005 Manual Transport Validation Evidence
+
+- Date: 2026-03-16
+- Branch: `005-fastmcp-refactor`
+- Environment: `DB_URL=sqlite:///./local.db`, `DEFAULT_ACTOR=local_dev`, `MCP_HOST=127.0.0.1`, `MCP_PORT=5001`
+
+### Transport Startup Verification
+
+| Transport | Command | Startup result |
+|---|---|---|
+| `stdio` | `python -m mcp_server.src.server --transport stdio` | PASS |
+| `sse` | `python -m mcp_server.src.server --transport sse --host 127.0.0.1 --port 5001` | PASS |
+| `streamable-http` | `python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001` | PASS |
+
+### MCP Inspector Connection Verification
+
+| Transport | Inspector URL | Connection result |
+|---|---|---|
+| `sse` | `http://127.0.0.1:5001/sse` | PASS |
+| `streamable-http` | `http://127.0.0.1:5001/mcp` | PASS |
+
+Note: `GET /` and `OPTIONS /` return `404 Not Found` for both network transports — this is expected FastMCP behaviour; the root path is not a valid MCP endpoint.
+
+### Tool Discovery and Basic Call
+
+- `get_system_health` discoverable and callable on all three transports: PASS
+- In-scope tool families present (`workflow.*`, `role.*`, `interaction.*`, `guard.*`, `interaction_component.*`): PASS
+- Deferred families absent (`unit_of_work.*`, `instance.*`): PASS
+
+### Overall Feature 005 Manual Validation Result: PASS
