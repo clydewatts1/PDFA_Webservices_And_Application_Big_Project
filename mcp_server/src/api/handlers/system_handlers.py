@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from mcp_server.src.api.app import JsonRpcError
+from mcp_server.src.api.errors import JsonRpcError
 from mcp_server.src.services.auth_service import user_logoff, user_logon
 from mcp_server.src.services.system_service import get_system_health
 from mcp_server.src.services.validation import ValidationError

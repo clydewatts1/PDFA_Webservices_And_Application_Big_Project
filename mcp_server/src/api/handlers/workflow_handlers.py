@@ -13,7 +13,7 @@ from typing import Any, Callable
 
 from sqlalchemy.orm import sessionmaker
 
-from mcp_server.src.api.app import JsonRpcError
+from mcp_server.src.api.errors import JsonRpcError
 from mcp_server.src.lib.tool_result import attach_success_metadata
 from mcp_server.src.services.workflow_service import (
     ServiceError,

@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from sqlalchemy.orm import sessionmaker
 
-from mcp_server.src.api.app import JsonRpcError
+from mcp_server.src.api.errors import JsonRpcError
 from mcp_server.src.services.instance_service import (
     InstanceNotFoundError,
     create_instance,
