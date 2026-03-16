@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "Build isolated web tier using Quart for async Flask compatibility, Jinja2 templates, and official MCP Python SDK client. Deliver four-phase implementation: Phase 1 (Foundation & Authentication), Phase 2 (Workspace/Workflow Selection), Phase 3 (Main Dashboard & Navigation), Phase 4 (Traditional CRUD Pages). Enforce strict tier isolation (Quart only calls await mcp_session.call_tool), no JavaScript state management, and boundary-aware testing with mocked MCP sessions."
 
+## Clarifications
+
+### Session 2026-03-16
+
+- Q: Which MCP transport should the web tier connect to? → A: SSE transport at `http://127.0.0.1:5001/sse`. Chosen for long-lived server-to-server communication and alignment with existing 005-fastmcp-refactor infrastructure.
+- Q: Should entity list and single-entity reads use separate MCP tools or a polymorphic tool? → A: Two separate tools per entity type (e.g., `get_roles_for_workflow` for list, `get_role_by_id` for single). Cleaner separation of concerns and simpler test mocking.
+- Q: What should happen when a form submission returns validation errors? → A: Re-render the form on the same page with user input preserved in session. Standard web behavior; preserves user context.
+- Q: Which entity attributes should be visible in create/edit forms? → A: Hide temporal/audit columns (`eff_from_datetime`, `eff_to_datetime`, `delete_ind`, `insert_user_name`, `update_user_name`); show business attributes only. MCP backend manages all temporal/audit logic per Constitution Principle III.a.
+- Q: How should the MCP session be initialized when Quart starts? → A: Create session in app factory (`create_app()`); validate connectivity on first `GET /` health check, not at startup. Supports independent tier startup and cloud-native loose coupling.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - System Health Check & Authentication Landing Page (Priority: P1)
@@ -165,8 +175,8 @@ The web tier MUST be implemented using Quart (async Flask) with Jinja2 templatin
 **FR-002: Stateless Server-Side Rendering**  
 The Quart application MUST NOT import SQLAlchemy, execute SQL directly, or maintain data state beyond HTTP session scope. All state persistence and business logic MUST be delegated to the MCP backend via `await mcp_session.call_tool()`.
 
-**FR-003: Official MCP Python SDK Client**  
-The web tier MUST use the official Python MCP SDK (mcp.client.http.http_client) to communicate synchronously-awaited async calls to the MCP backend. Connection management MUST establish a single global async session available to all routes.
+**FR-003: Official MCP Python SDK Client with SSE Transport**  
+The web tier MUST use the official Python MCP SDK (mcp.client.http.http_client) to communicate via SSE transport at `http://127.0.0.1:5001/sse`. Connection management MUST establish a single global async session in the app factory (`create_app()`), available to all routes. MCP session initialization MUST NOT block web tier startup; connectivity validation MUST occur on the first landing-page request (`GET /` health check).
 
 **FR-004: Tier Isolation & Testing Boundary**  
 Route-level unit tests MUST use `AsyncMock` to mock the MCP session rather than making real network calls. Test suite MUST verify Quart routes in isolation from the actual MCP server (Constitution Principle VI).
@@ -186,11 +196,11 @@ Dashboard route (`/dashboard`) MUST retrieve user's available workflows via MCP 
 **FR-009: Contextual Entity Navigation**  
 Main navigation bar MUST render links to entity categories (Workflows, Roles, Guards, Interactions, Interaction Components). All routes MUST read `active_workflow_id` from session and pass it to MCP tools to filter results by workflow.
 
-**FR-010: List Views with Table Rendering**  
-Entity list routes (e.g., `/roles`) MUST call appropriate MCP list tool (e.g., `get_roles_for_workflow`), render returned records in HTML table with action columns (Edit, Delete), and handle empty result sets gracefully.
+**FR-010: List Views with Table Rendering (Two-Tool Pattern)**  
+Entity list routes (e.g., `/roles`) MUST call a dedicated MCP list tool for the entity type (e.g., `get_roles_for_workflow` with `workflow_id` parameter). Single-entity fetch routes MUST call a separate tool (e.g., `get_role_by_id` with `role_id` parameter). Both tools MUST be awaited separately in their respective routes. List tool results MUST render in an HTML table with action columns (Edit, Delete) and handle empty result sets gracefully.
 
-**FR-011: Edit & Create Pages with Form Submission**  
-Edit and create routes MUST render HTML forms with fields mapped to entity attributes. Form submission (`POST`) MUST map request form data to MCP tool parameters (e.g., `update_role`), await tool result, redirect on success, and re-render form with validation errors on failure.
+**FR-011: Edit & Create Pages with Form Submission (Business Fields Only)**  
+Edit and create routes MUST render HTML forms containing ONLY business attribute fields (e.g., `role_name`, `role_description`); temporal columns (`eff_from_datetime`, `eff_to_datetime`) and audit columns (`insert_user_name`, `update_user_name`) MUST be hidden from the user and managed exclusively by the MCP backend. Form submission (`POST`) MUST map request form data to MCP tool parameters (e.g., `update_role`), await tool result, redirect to list view on success, and re-render the same form page with validation errors and user input preserved in session on failure.
 
 **FR-012: Delete Operations with Confirmation**  
 Delete action MUST show confirmation page before processing. Confirmation submission MUST await MCP delete tool, redirect on success, and show error message on failure.
@@ -257,8 +267,11 @@ All templates render valid HTML5 with Bootstrap 5 classes; form inputs have labe
 - `created_at`: Session creation timestamp
 
 ### MCP Session (Global)
-**Type**: `mcp.client.http.HttpClientSession`  
+**Type**: `mcp.client.http.HttpClientSession` with SSE transport  
+**Endpoint**: `http://127.0.0.1:5001/sse` (configurable via `MCP_SERVER_URL` environment variable)  
+**Initialization**: Created in app factory function (`create_app()`); NOT in startup hook  
 **Lifetime**: Application-level singleton  
+**Validation**: Connectivity validated on first `GET /` request (health check); web tier can start if MCP is temporarily unavailable  
 **Usage**: All routes call `await mcp_session.call_tool(tool_name, tool_input_dict)`
 
 ### Entity Record (Generic)
