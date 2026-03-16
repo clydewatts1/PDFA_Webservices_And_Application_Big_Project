@@ -39,7 +39,7 @@ Build an isolated Quart (async Flask) web tier that serves as the presentation l
 
 ✓ **Schema Impact Documentation (Constitution VI)**: Workflow, Role, Guard, Interaction, InteractionComponent entities are read-only in Phase 1-4 (list + single-fetch tools). No CREATE/UPDATE/DELETE in web tier; all writes are aspirationally managed through MCP tools. Quart tier documents entity cardinality and relationships in `contracts/` folder per Phase 1 deliverables.
 
-✓ **Quality Gates (Constitution VII)**: Plan includes environment variable setup (MCP_HOST, MCP_PORT, SESSION_SECRET), external citations (official MCP SDK, Bootstrap 5 CDN), README updates (Flask_web → Quart_web migration guide), and docstring expectations (async context managers, type hints, session lifecycle).
+✓ **Quality Gates (Constitution VII)**: Plan includes environment variable setup (`MCP_SERVER_URL`, `SESSION_SECRET`), external citations (official MCP SDK, Bootstrap 5 CDN), README updates (Flask_web → Quart_web migration guide), and docstring expectations (async context managers, type hints, session lifecycle).
 
 ## Project Structure
 
@@ -243,7 +243,7 @@ No Constitutional violations identified. Design adheres to all seven principles.
    - TTL: 3600s default (configurable)
 
 4. **[contracts/mcp-session-lifecycle.md](contracts/mcp-session-lifecycle.md)**
-   - SSE endpoint: `GET http://<MCP_HOST>:<MCP_PORT>/sse`
+   - SSE endpoint: value of `MCP_SERVER_URL` env var (default: `http://127.0.0.1:5001/sse`)
    - Message format: JSON-RPC 2.0 with `jsonrpc`, `id`, `method`, `params`
    - Reconnection: exponential backoff with max 30s interval
 
@@ -264,7 +264,7 @@ No Constitutional violations identified. Design adheres to all seven principles.
 
 1. Create quart_web directory structure
 2. Create quart_web/src/app.py with Quart app factory
-3. Configure environment: MCP_HOST, MCP_PORT, SESSION_SECRET
+3. Configure environment: `MCP_SERVER_URL=http://127.0.0.1:5001/sse`, `SESSION_SECRET=<random>`
 4. pip install quart mcp[sse] aioredis
 
 ## Running Phase 1

@@ -16,6 +16,7 @@
 - Q: How should the MCP session be initialized when Quart starts? → A: Create session in app factory (`create_app()`); validate connectivity on first `GET /` health check, not at startup. Supports independent tier startup and cloud-native loose coupling.
 - Q: How should POST routes be protected against Cross-Site Request Forgery (CSRF)? → A: Use `quart-wtf` CSRFProtect extension; add `{{ form.csrf_token }}` hidden input to every POST form; validate token automatically on submit via `CSRFProtect(app)`.
 - Q: Which directory is the canonical root for the Quart web tier source code and templates? → A: `quart_web/` — the new async web tier lives under `quart_web/src/`, including `quart_web/src/templates/`. The existing `flask_web/` directory is the legacy synchronous tier and is not modified by this feature.
+- Q: What is the canonical environment variable name and value format for the MCP backend endpoint? → A: Single variable `MCP_SERVER_URL=http://127.0.0.1:5001/sse` (full SSE URL). Default dev value is `http://127.0.0.1:5001/sse`. Eliminates the split `MCP_HOST`/`MCP_PORT` pattern; simpler to configure and avoids path-assembly bugs.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -230,7 +231,7 @@ MCP tool errors MUST be caught, translated to user-friendly messages, and render
 Quart routes MUST log MCP calls, response times, and errors using structured logging (JSON format preferred for consistency with MCP tier).
 
 **NFR-005: Environment Configuration**  
-MCP endpoint URL (e.g., `http://127.0.0.1:5001/messages`) MUST be configurable via environment variable (e.g., `MCP_SERVER_URL`).
+The MCP SSE endpoint URL MUST be configurable via the `MCP_SERVER_URL` environment variable. Default development value: `MCP_SERVER_URL=http://127.0.0.1:5001/sse`. The application MUST NOT hardcode the URL; all references MUST read from this single variable.
 
 ---
 
