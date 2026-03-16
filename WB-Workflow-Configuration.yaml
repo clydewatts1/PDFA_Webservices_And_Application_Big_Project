@@ -694,3 +694,4 @@ tools:
 mock_users:
   reviewer: reviewer_pass
   test_user: test_pass
+  admin: password123

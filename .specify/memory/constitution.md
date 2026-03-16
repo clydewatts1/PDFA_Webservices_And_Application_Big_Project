@@ -80,6 +80,19 @@ external sources, including AI prompts, architectural input, and Spec Kit usage,
 cited. Rationale: this project is evaluated on both technical correctness and the clarity
 of the development process, balancing human readability with strict grading rubrics.
 
+### VI. Boundary-Aware Automated Testing
+Automated testing MUST respect the strict three-tier architecture. Tests for the Flask 
+web tier MUST isolate the UI logic by mocking or stubbing the MCP client, ensuring the 
+web tier is never directly connected to a database during its test suite. Conversely, 
+tests for the MCP server MUST validate business logic, SQLAlchemy transactions, and 
+tool execution using a dedicated test database, without relying on the Flask UI. 
+Furthermore, every domain entity MUST have explicit tests verifying Principle III.a 
+(Temporal/SCD Type-2 Mandate); specifically, tests MUST assert that updating a record 
+correctly inserts the prior state into the `_Hist` table with closed timestamps and 
+updates the current table in a single transaction. Rationale: Boundary-aware testing 
+prevents tier leakage in the test suite and guarantees the complex temporal audit 
+requirements remain intact over time.
+
 ## Architecture and Data Standards
 
 - Configuration MUST remain environment-agnostic. Database credentials, MCP server URLs,
@@ -113,6 +126,9 @@ of the development process, balancing human readability with strict grading rubr
 - Completion criteria for any increment MUST include code quality review, README or docs
 	updates where relevant, and evidence that the resulting change remains demonstrable in
 	isolation.
+- Reviews MUST reject any pull request or implementation chunk that lacks automated 
+  tests, fails to test the current/`_Hist` temporal updates, or violates tier isolation 
+  (e.g., testing Flask by connecting it directly to a SQLAlchemy test session).
 
 ## Governance
 
@@ -125,15 +141,15 @@ task, and implementation review time.
 Versioning policy follows semantic versioning for governance documents: MAJOR for
 backward-incompatible principle removals or redefinitions, MINOR for new principles or
 materially expanded sections, and PATCH for clarifications that do not alter required
-behavior. This amendment redefines III.a from mirrored temporal current-table behavior to
-a single-row current-table plus `_Hist` model and is therefore released as version 2.0.0.
+behavior. This amendment introduces Principle VI to mandate boundary-aware automated 
+testing and specific temporal logic verification, and is therefore released as version 2.2.0.
 
 Every implementation review MUST verify that the current work respects the Database -> MCP
-Server -> Flask Web Server boundary, preserves MCP-over-HTTP communication, keeps
-SQLAlchemy confined to the MCP tier, maintains seven-table workflow schema integrity where
-relevant, preserves current/`_Hist` symmetry with only one current row per business key,
-keeps prior versions in `_Hist` under MCP-owned transaction control, documents
-environment variables, records external-source attribution, and follows the project's
-docstring and README requirements.
+Server -> Flask Web Server boundary, preserves MCP-over-HTTP communication, utilizes the
+official FastMCP library parameterized for multiple transports, keeps SQLAlchemy confined 
+to the MCP tier, maintains seven-table workflow schema integrity where relevant, preserves 
+current/`_Hist` symmetry, keeps prior versions in `_Hist` under MCP-owned transaction control, 
+includes boundary-aware automated tests for these temporal operations, documents environment 
+variables, records external-source attribution, and follows the project's docstring and README requirements.
 
-**Version**: 2.0.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-15
+**Version**: 2.2.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-16

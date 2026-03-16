@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import os
 import sys
+import argparse
 from typing import Any, Optional
 
 from dotenv import load_dotenv
@@ -106,16 +107,48 @@ def create_stdio_server(config_path: str | None = None) -> Any:
 
 def main() -> int:
     """Launch MCP stdio transport with canonical command semantics."""
+    parser = argparse.ArgumentParser(description="Run the MCP Server")
+    # Add a transport argument (defaulting to stdio for local dev)
+    parser.add_argument(
+        "--transport", 
+        choices=["stdio", "sse", "http"], 
+        default="stdio", 
+        help="Transport type (stdio, sse, or http)"
+    )
+    parser.add_argument("--port", type=int, default=5001, help="Port for SSE (default: 5001)")
+    parser.add_argument("--host", default="127.0.0.1", help="Host for SSE (default: 127.0.0.1)")
 
+    args = parser.parse_args()
     config_path = os.getenv("MCP_CONFIG_PATH")
-    try:
-        mcp = create_stdio_server(config_path=config_path)
-        mcp.run(transport="stdio")
-        return 0
-    except (ConfigError, ValidationError, KeyError) as exc:
-        print(f"MCP stdio startup failed: {exc}", file=sys.stderr)  # stderr, NOT stdout
+    if args.transport == "stdio":
+        try:
+            mcp = create_stdio_server(config_path=config_path)
+            mcp.run(transport="stdio")
+            return 0
+        except (ConfigError, ValidationError, KeyError) as exc:
+            print(f"MCP stdio startup failed: {exc}", file=sys.stderr)  # stderr, NOT stdout
+            return 1
+    elif args.transport in ("sse",):
+        try:            
+            from mcp_server.src.api.app import create_runtime_app
+            app = create_runtime_app(config_path=config_path)
+            app.run(transport="sse", host=args.host, port=args.port, debug=False)
+            return 0
+        except (ConfigError, ValidationError, KeyError) as exc:
+            print(f"MCP SSE startup failed: {exc}", file=sys.stderr)  # stderr, NOT stdout
+            return 1
+    elif args.transport in ("http",):
+        try:            
+            from mcp_server.src.api.app import create_runtime_app
+            app = create_runtime_app(config_path=config_path)
+            app.run(transport="streamable-http", host=args.host, port=args.port, debug=False)
+            return 0
+        except (ConfigError, ValidationError, KeyError) as exc:
+            print(f"MCP HTTP startup failed: {exc}", file=sys.stderr)  # stderr, NOT stdout
+            return 1
+    else:
+        print(f"Unknown transport: {args.transport}")
         return 1
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
