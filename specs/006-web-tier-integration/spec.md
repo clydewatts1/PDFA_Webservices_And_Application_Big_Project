@@ -17,6 +17,7 @@
 - Q: How should POST routes be protected against Cross-Site Request Forgery (CSRF)? → A: Use `quart-wtf` CSRFProtect extension; add `{{ form.csrf_token }}` hidden input to every POST form; validate token automatically on submit via `CSRFProtect(app)`.
 - Q: Which directory is the canonical root for the Quart web tier source code and templates? → A: `quart_web/` — the new async web tier lives under `quart_web/src/`, including `quart_web/src/templates/`. The existing `flask_web/` directory is the legacy synchronous tier and is not modified by this feature.
 - Q: What is the canonical environment variable name and value format for the MCP backend endpoint? → A: Single variable `MCP_SERVER_URL=http://127.0.0.1:5001/sse` (full SSE URL). Default dev value is `http://127.0.0.1:5001/sse`. Eliminates the split `MCP_HOST`/`MCP_PORT` pattern; simpler to configure and avoids path-assembly bugs.
+- Q: What timeout policy applies to MCP tool calls in CRUD routes? → A: All MCP tool calls MUST time out after 10 seconds via `asyncio.wait_for()`. On timeout, the route MUST render a user-visible error page with a retry link. The 10-second limit applies uniformly to all tools (list, fetch, create, update, delete).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -225,7 +226,7 @@ All Quart routes MUST use `async def` syntax and `await` MCP calls to support co
 Jinja2 templates MUST be organized in `quart_web/src/templates/` with subdirectories for entity types (e.g., `roles/`, `workflows/`) and shared components (e.g., `_navigation.html`, `_form_errors.html`). The legacy `flask_web/` directory is not modified by this feature.
 
 **NFR-003: Error Handling & User Feedback**  
-MCP tool errors MUST be caught, translated to user-friendly messages, and rendered in templates. Generic error page MUST be available for unhandled exceptions.
+MCP tool errors MUST be caught, translated to user-friendly messages, and rendered in templates. Generic error page MUST be available for unhandled exceptions. All MCP tool calls MUST be wrapped in `asyncio.wait_for()` with a 10-second timeout; on `asyncio.TimeoutError` the route MUST render an error page informing the user the backend did not respond, with a retry link back to the originating page.
 
 **NFR-004: Logging & Diagnostics**  
 Quart routes MUST log MCP calls, response times, and errors using structured logging (JSON format preferred for consistency with MCP tier).
@@ -296,7 +297,7 @@ All templates render valid HTML5 with Bootstrap 5 classes; form inputs have labe
 ## Assumptions
 
 - **Single User in MVP**: Session management is single-user per browser; multi-user concurrent sessions are out of scope.
-- **MCP Backend Always Available**: Landing page assumes MCP health check will complete within 2 seconds; timeout handling defers to Phase 2.
+- **MCP Backend Always Available**: All MCP tool calls use a 10-second timeout via `asyncio.wait_for()`; on timeout or connection error, a user-visible error page with retry link is shown. Full reconnection and retry logic is deferred to Phase 2.
 - **Workflow Scope for All Entities**: All dependent entities (Role, Guard, Interaction, etc.) are scoped to the selected workflow; cross-workflow access is not supported.
 - **Form Validation is MCP-Driven**: Client-side form validation (HTML5 constraints) is secondary; MCP tool returns validation errors which are displayed to user.
 - **CSS Framework Sufficiency**: Bootstrap 5 is sufficient for all UI requirements; custom CSS is minimal.
