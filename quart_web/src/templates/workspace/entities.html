@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Entities — PDFA Application{% endblock %}
+{% block content %}
+  <section class="py-4">
+    <h1 class="h3 mb-3">Entities Dashboard</h1>
+    <p class="text-muted">Active workflow: {{ active_workflow_name }}</p>
+
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-primary w-100" href="/workflows">Workflows</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-primary w-100" href="/roles">Roles</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-primary w-100" href="/guards">Guards</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-primary w-100" href="/interactions">Interactions</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-primary w-100" href="/interaction-components">Interaction Components</a></div>
+    </div>
+  </section>
+{% endblock %}

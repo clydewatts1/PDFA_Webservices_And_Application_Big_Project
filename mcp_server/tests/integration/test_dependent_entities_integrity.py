@@ -162,7 +162,7 @@ class TestRoleTemporalInvariant:
         rpc(client, "role.create", {"RoleName": "Hidden", "WorkflowName": "ListDelWF", "actor": "u"}, rid=2)
         rpc(client, "role.delete", {"RoleName": "Hidden", "WorkflowName": "ListDelWF", "actor": "u"}, rid=3)
         body = rpc(client, "role.list", {"WorkflowName": "ListDelWF"}, rid=4)
-        names = [r["RoleName"] for r in body["result"]["roles"]]
+        names = [r["RoleName"] for r in body["result"]["records"]]
         assert "Visible" in names
         assert "Hidden" not in names
 

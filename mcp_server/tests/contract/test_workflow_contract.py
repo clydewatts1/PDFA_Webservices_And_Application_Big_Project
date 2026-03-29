@@ -227,13 +227,13 @@ class TestWorkflowList:
             "actor": "alice",
         }, request_id=2)
         body = _rpc(mcp_client, "workflow.list", {}, request_id=3)
-        names = [w["WorkflowName"] for w in body["result"]["workflows"]]
+        names = [w["WorkflowName"] for w in body["result"]["records"]]
         assert "ListA" in names
         assert "ListB" in names
 
     def test_list_empty_when_no_workflows(self, mcp_client) -> None:
         body = _rpc(mcp_client, "workflow.list", {})
-        assert body["result"]["workflows"] == []
+        assert body["result"]["records"] == []
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +266,7 @@ class TestWorkflowDelete:
             "actor": "alice",
         }, request_id=2)
         body = _rpc(mcp_client, "workflow.list", {}, request_id=3)
-        names = [w["WorkflowName"] for w in body["result"]["workflows"]]
+        names = [w["WorkflowName"] for w in body["result"]["records"]]
         assert "HideMe" not in names
 
     def test_delete_non_existent_workflow_returns_error(self, mcp_client) -> None:

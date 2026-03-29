@@ -166,7 +166,7 @@ class TestTemporalSemantics:
             "actor": "user",
         }, request_id=2)
         body = rpc(client, "workflow.list", {}, request_id=3)
-        matching = [w for w in body["result"]["workflows"] if w["WorkflowName"] == "ClosedRowWF"]
+        matching = [w for w in body["result"]["records"] if w["WorkflowName"] == "ClosedRowWF"]
         assert len(matching) == 1
         assert matching[0]["WorkflowDescription"] == "v2"
 

@@ -75,6 +75,15 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
+## Layer Partition *(mandatory)*
+
+- `spec.md` MUST be initiated through the Spec Kit workflow before implementation starts.
+- `spec.md` MUST include explicit sections for:
+  - **MCP (Logic)**
+  - **Web-Tier (Routes)**
+  - **Page (UI)**
+- Each section MUST define responsibilities, boundary constraints, and impacted contracts.
+
 ## Requirements *(mandatory)*
 
 <!--
@@ -102,8 +111,10 @@
 
 ### Constitutional Constraints *(mandatory when applicable)*
 
-- Identify which layer or layers are affected and explain how Database -> MCP Server -> Flask
+- Identify which layer or layers are affected and explain how Database -> MCP Server -> Quart
   Web Server boundaries remain intact.
+- Confirm the feature was initiated through Spec Kit and that MCP (Logic), Web-Tier
+  (Routes), and Page (UI) sections are present and complete.
 - Describe any MCP contract additions or changes, including whether the interaction is
   JSON-RPC, SSE, or both.
 - If the feature touches persistence, state how SQLAlchemy remains confined to the MCP server

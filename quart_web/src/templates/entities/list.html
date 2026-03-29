@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ entity_label | default('Records') }} — PDFA Application{% endblock %}
+{% block content %}
+  <section class="py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h3 mb-0">{{ entity_label }}</h1>
+      <a class="btn btn-primary" href="/{{ entity_path }}/new">Create New</a>
+    </div>
+
+    {% if records %}
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+          <thead>
+            <tr>
+              {% for column in columns %}
+                <th scope="col">{{ column }}</th>
+              {% endfor %}
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in records %}
+              <tr>
+                {% for column in columns %}
+                  <td>{{ record.get(column, '') }}</td>
+                {% endfor %}
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="/{{ entity_path }}/{{ record.get(id_field, '') }}/edit">Edit</a>
+                  <a class="btn btn-sm btn-outline-danger" href="/{{ entity_path }}/{{ record.get(id_field, '') }}/delete">Delete</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info" role="alert">No records found.</div>
+    {% endif %}
+  </section>
+{% endblock %}

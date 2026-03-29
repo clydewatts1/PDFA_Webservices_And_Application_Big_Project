@@ -1,0 +1,19 @@
+<nav class="navbar navbar-expand-lg bg-light border-bottom">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">PDFA</a>
+    <div class="navbar-nav me-auto">
+      <a class="nav-link" href="/dashboard">Dashboard</a>
+      {% if session.get("active_workflow_name") %}
+        <a class="nav-link" href="/entities">Entities</a>
+        <a class="nav-link" href="/workflows">Workflows</a>
+        <a class="nav-link" href="/roles">Roles</a>
+        <a class="nav-link" href="/guards">Guards</a>
+        <a class="nav-link" href="/interactions">Interactions</a>
+        <a class="nav-link" href="/interaction-components">Interaction Components</a>
+      {% endif %}
+    </div>
+    <span class="navbar-text text-muted">
+      Active workflow: {{ session.get("active_workflow_name", "none") }}
+    </span>
+  </div>
+</nav>

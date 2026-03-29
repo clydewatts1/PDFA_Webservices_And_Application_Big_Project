@@ -1,8 +1,8 @@
 <!--
 Sync Impact Report
-Version change: 1.3.0 -> 2.0.0
+Version change: 2.2.0 -> 2.3.0
 Modified principles:
-- III.a Temporal/SCD Type-2 Mandate (redefined from mirrored current-table versioning to current-state plus history)
+- VII. Spec-First Workflow and Partitioned Specifications (added)
 Added sections:
 - None
 Removed sections:
@@ -12,8 +12,9 @@ Templates requiring updates:
 - ✅ .specify/templates/spec-template.md
 - ✅ .specify/templates/tasks-template.md
 - ✅ README.md
+- ⚠ pending .specify/templates/commands/*.md (directory not present; no command templates to update)
 Follow-up TODOs:
-- Update persistence services and tests to stop accumulating closed versions in primary tables
+- None
 -->
 # PDFA Webservices and Application Big Project Constitution
 
@@ -21,24 +22,24 @@ Follow-up TODOs:
 
 ### I. Strict Three-Tier Architecture
 The system MUST be implemented as a strict three-tier chain: Database -> MCP Server ->
-Flask Web Server. Responsibilities MUST stop at tier boundaries. The database tier stores
-state, the MCP server owns business logic and persistence orchestration, and the Flask web
+Quart Web Server. Responsibilities MUST stop at tier boundaries. The database tier stores
+state, the MCP server owns business logic and persistence orchestration, and the Quart web
 server owns HTTP views, forms, and presentation flow. Direct bypasses across tiers,
-including shared persistence code or direct database access from Flask, are prohibited.
+including shared persistence code or direct database access from Quart, are prohibited.
 Rationale: this preserves separation of concerns, keeps the architecture reviewable, and
 matches the project's required delivery model.
 
 ### II. HTTP-Only MCP Communication
-The Flask application MUST communicate with the MCP server exclusively via HTTP using
+The Quart application MUST communicate with the MCP server exclusively via HTTP using
 JSON-RPC and/or SSE contracts. In-process imports, direct Python function calls, local ORM
-reuse, and any non-HTTP shortcut between Flask and MCP are prohibited. Every cross-tier
+reuse, and any non-HTTP shortcut between Quart and MCP are prohibited. Every cross-tier
 interaction MUST be expressed as a documented MCP tool or streaming contract so the system
 remains testable and replaceable at the interface boundary. Rationale: the project must
 demonstrate service-oriented communication rather than a collapsed monolith.
 
 ### III. SQLAlchemy Containment and Data Access Encapsulation
 SQLAlchemy is the only permitted library for database interaction, and it MUST reside only
-inside the MCP server tier. The Flask web server MUST NOT import SQLAlchemy, execute raw
+inside the MCP server tier. The Quart web server MUST NOT import SQLAlchemy, execute raw
 SQL, or depend on database-specific client libraries. All create, read, update, delete,
 and integrity operations MUST be performed by MCP tools that encapsulate transactions,
 validation, and persistence logic. Rationale: one persistence mechanism in one tier avoids
@@ -81,11 +82,11 @@ cited. Rationale: this project is evaluated on both technical correctness and th
 of the development process, balancing human readability with strict grading rubrics.
 
 ### VI. Boundary-Aware Automated Testing
-Automated testing MUST respect the strict three-tier architecture. Tests for the Flask 
+Automated testing MUST respect the strict three-tier architecture. Tests for the Quart 
 web tier MUST isolate the UI logic by mocking or stubbing the MCP client, ensuring the 
 web tier is never directly connected to a database during its test suite. Conversely, 
 tests for the MCP server MUST validate business logic, SQLAlchemy transactions, and 
-tool execution using a dedicated test database, without relying on the Flask UI. 
+tool execution using a dedicated test database, without relying on the Quart UI. 
 Furthermore, every domain entity MUST have explicit tests verifying Principle III.a 
 (Temporal/SCD Type-2 Mandate); specifically, tests MUST assert that updating a record 
 correctly inserts the prior state into the `_Hist` table with closed timestamps and 
@@ -93,17 +94,27 @@ updates the current table in a single transaction. Rationale: Boundary-aware tes
 prevents tier leakage in the test suite and guarantees the complex temporal audit 
 requirements remain intact over time.
 
+### VII. Spec-First Workflow and Partitioned Specifications
+Every feature MUST be initiated through the Spec Kit workflow before implementation work
+begins. The resulting `spec.md` MUST explicitly partition scope into three sections:
+MCP (Logic), Web-Tier (Routes), and Page (UI). Each section MUST describe boundaries,
+expected behavior, and affected contracts for that layer before code is written.
+Implementations that skip Spec Kit initiation or omit these three partitions are
+non-compliant and MUST be rejected in review. Rationale: requiring a spec-first,
+layer-partitioned design record prevents tier leakage, clarifies ownership, and preserves
+traceability from intent to implementation.
+
 ## Architecture and Data Standards
 
 - Configuration MUST remain environment-agnostic. Database credentials, MCP server URLs,
-	Flask server URLs, secrets, and similar deployment values MUST be supplied through
+	Quart server URLs, secrets, and similar deployment values MUST be supplied through
 	environment variables, including a local .env workflow where appropriate.
 - The MCP server MUST own SQLAlchemy models, session handling, migrations, and relationship
 	enforcement for the seven-table workflow schema.
 - Every persisted domain entity MUST preserve symmetric current and `_Hist` schemas with
 	the mandated temporal and audit columns, while keeping only the current version in the
 	primary table and prior versions in `_Hist`.
-- The Flask web server MUST treat MCP responses as its system of record for data access and
+- The Quart web server MUST treat MCP responses as its system of record for data access and
 	MUST NOT mirror persistence logic locally.
 - Any feature that changes schema shape, HTTP contracts, or event streams MUST update the
 	relevant specification, implementation plan, and developer-facing documentation before it
@@ -117,6 +128,9 @@ requirements remain intact over time.
 - Each feature specification and implementation plan MUST state which layer is affected,
 	which MCP contracts are added or changed, whether schema integrity rules are impacted, and
 	which environment variables or deployment settings are required.
+- Each feature MUST begin through Spec Kit workflow artifacts, and `spec.md` MUST contain
+	explicit MCP (Logic), Web-Tier (Routes), and Page (UI) sections before implementation
+	tasks are approved.
 - Reviews MUST reject any change that breaks current/`_Hist` symmetry, omits mandated
 	temporal columns, stores closed historical versions in the primary table, or moves
 	current-state plus history orchestration outside the MCP server.
@@ -128,7 +142,7 @@ requirements remain intact over time.
 	isolation.
 - Reviews MUST reject any pull request or implementation chunk that lacks automated 
   tests, fails to test the current/`_Hist` temporal updates, or violates tier isolation 
-  (e.g., testing Flask by connecting it directly to a SQLAlchemy test session).
+  (e.g., testing Quart by connecting it directly to a SQLAlchemy test session).
 
 ## **Governance**
 
@@ -141,15 +155,17 @@ task, and implementation review time.
 Versioning policy follows semantic versioning for governance documents: MAJOR for
 backward-incompatible principle removals or redefinitions, MINOR for new principles or
 materially expanded sections, and PATCH for clarifications that do not alter required
-behavior. This amendment introduces Principle VI to mandate boundary-aware automated 
-testing and specific temporal logic verification, and is therefore released as version 2.2.0.
+behavior. This amendment introduces Principle VII to mandate Spec Kit-first initiation and
+layer-partitioned specifications, and is therefore released as version 2.3.0.
 
 Every implementation review MUST verify that the current work respects the Database -> MCP
-Server -> Flask Web Server boundary, preserves MCP-over-HTTP communication, utilizes the
+Server -> Quart Web Server boundary, preserves MCP-over-HTTP communication, utilizes the
 official FastMCP library parameterized for multiple transports, keeps SQLAlchemy confined 
 to the MCP tier, maintains seven-table workflow schema integrity where relevant, preserves 
 current/`_Hist` symmetry, keeps prior versions in `_Hist` under MCP-owned transaction control, 
 includes boundary-aware automated tests for these temporal operations, documents environment 
-variables, records external-source attribution, and follows the project's docstring and README requirements.
+variables, records external-source attribution, follows the project's docstring and README
+requirements, and confirms feature specs are initiated via Spec Kit with explicit MCP
+(Logic), Web-Tier (Routes), and Page (UI) sections.
 
-**Version**: 2.2.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-16
+**Version**: 2.3.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-23

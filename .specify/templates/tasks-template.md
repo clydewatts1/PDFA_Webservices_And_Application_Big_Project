@@ -21,7 +21,7 @@ description: "Task list template for feature implementation"
 ## Path Conventions
 
 - **Single project**: `src/`, `tests/` at repository root
-- **Three-tier web app**: `mcp_server/src/`, `flask_web/src/`, `database/`
+- **Three-tier web app**: `mcp_server/src/`, `quart_web/src/`, `database/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
 - Paths shown below assume single project - adjust based on plan.md structure
 
@@ -65,11 +65,13 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T004 Setup database schema and migrations framework in the MCP-owned data layer
 - [ ] T004a Define symmetric current and `_Hist` schemas with the required temporal and
   audit columns, ensuring the primary table keeps only the current row per business key
+- [ ] T004b Validate Spec Kit initiation and verify `spec.md` includes MCP (Logic),
+  Web-Tier (Routes), and Page (UI) sections before implementation tasks proceed
 - [ ] T005 [P] Define MCP HTTP contracts (JSON-RPC/SSE) needed for the first delivery chunk
-- [ ] T006 [P] Setup MCP routing, tool handlers, and Flask client integration boundaries
+- [ ] T006 [P] Setup MCP routing, tool handlers, and Quart client integration boundaries
 - [ ] T007 Create models and relationships for Workflow, Role, Interaction, Guard,
   InteractionComponent, UnitOfWork, and Instance
-- [ ] T008 Configure error handling and logging infrastructure across Flask and MCP tiers
+- [ ] T008 Configure error handling and logging infrastructure across Quart and MCP tiers
 - [ ] T009 Setup environment configuration management for database credentials and service URLs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel

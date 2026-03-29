@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Select Workflow — PDFA Application{% endblock %}
+{% block content %}
+  <section class="py-4">
+    <h1 class="h3 mb-3">Select Workflow</h1>
+    <p class="text-muted">Choose an active workflow to continue to entity management.</p>
+
+    {% if workflow_error %}
+      <div class="alert alert-danger" role="alert">
+        Unable to load workflows: {{ workflow_error }}
+      </div>
+    {% endif %}
+
+    {% if workflows %}
+      <div class="card">
+        <div class="card-body">
+          {% include "_form_errors.html" %}
+          <form method="post" action="/dashboard" novalidate>
+            {{ form.csrf_token }}
+            <div class="mb-3">
+              <label class="form-label" for="workflow_name">Workflow</label>
+              {{ form.workflow_name(class_="form-select", id="workflow_name") }}
+            </div>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              onclick="this.disabled=true; this.form.submit()"
+            >
+              Continue
+            </button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-info" role="alert">
+        <strong>No workflows found.</strong>
+        Create a workflow to begin using the application.
+      </div>
+      <a href="/workflows/new" class="btn btn-outline-primary">Create Workflow</a>
+    {% endif %}
+  </section>
+{% endblock %}
