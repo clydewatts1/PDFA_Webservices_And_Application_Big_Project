@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Confirm Delete — PDFA Application{% endblock %}
+{% block content %}
+  <section class="py-4">
+    <h1 class="h3 mb-3">Confirm Delete</h1>
+    {% if mcp_error %}
+      <div class="alert alert-danger" role="alert">{{ mcp_error }}</div>
+    {% endif %}
+    <p class="text-muted">You are about to delete this record:</p>
+    <pre class="bg-light border rounded p-3 small">{{ record | tojson(indent=2) }}</pre>
+
+    <form method="post" action="{{ action_url }}" class="d-flex gap-2" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ session.get('_csrf_token', '') }}" />
+      <button
+        type="submit"
+        class="btn btn-danger"
+        onclick="this.disabled=true; this.form.submit()"
+      >
+        Confirm Delete
+      </button>
+      <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+  </section>
+{% endblock %}

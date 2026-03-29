@@ -157,3 +157,53 @@ Note: `GET /` and `OPTIONS /` return `404 Not Found` for both network transports
 - Deferred families absent (`unit_of_work.*`, `instance.*`): PASS
 
 ### Overall Feature 005 Manual Validation Result: PASS
+
+## Feature 006 Quart Web Tier Validation Evidence
+
+- Date: 2026-03-16
+- Branch: `006-web-tier-integration`
+- Environment: `SESSION_SECRET=test-session-secret`, `MCP_SERVER_URL=http://127.0.0.1:5001/sse`
+
+### Final Test Matrix
+
+| Scope | Command | Result |
+|---|---|---|
+| Unit suite | `.venv/Scripts/python.exe -m pytest quart_web/tests/unit/ -q` | PASS |
+| Integration happy path | `.venv/Scripts/python.exe -m pytest quart_web/tests/integration/test_role_crud_e2e.py -q` | PASS |
+| Full web-tier suite | `.venv/Scripts/python.exe -m pytest quart_web/tests/ -q` | PASS |
+| Detailed final summary | `.venv/Scripts/python.exe -m pytest quart_web/tests/ -v --tb=short` | PASS (`59 passed in 3.72s`) |
+
+### Coverage Notes
+
+- Unit coverage includes health/auth/workspace/navigation/list/create/edit/delete route families.
+- Integration coverage validates happy-path chain: health -> login -> workflow selection -> role create/update/delete.
+- No failing tests or runtime errors observed in final matrix.
+
+## Feature 008 Documentation Compliance Evidence
+
+- Date (UTC): 2026-03-23
+- Scope: Documentation compliance artifacts and reviewer navigation validation
+
+### Startup Reproducibility Snapshot
+
+- Quart root endpoint (`http://127.0.0.1:5002/`): PASS (HTTP 200 observed)
+- MCP JSON-RPC endpoint smoke (`http://127.0.0.1:5001/rpc`): FAIL (HTTP 404)
+- MCP `/mcp` smoke (`http://127.0.0.1:5001/mcp`): FAIL (HTTP 404)
+
+Interpretation:
+- Documentation assets are in place; Quart process endpoint was reachable during capture.
+- MCP runtime endpoint did not present expected route during this capture and should be re-checked in reviewer run.
+
+### Required Artifact Existence Check
+
+- `docs/constitution/coverage-matrix.md`: PASS
+- `docs/source_attribution.md`: PASS
+- `docs/test_evidence.md`: PASS
+- `docs/prompts/prompt_log.md`: PASS
+- `specs/008-constitution-docs/artifacts/us1-validation.md`: PASS
+- `specs/008-constitution-docs/artifacts/us3-validation.md`: PASS
+
+### Section V / Principle V Evidence Path Consistency
+
+- Principle V supporting evidence paths remain valid and resolvable from root README pointers.
+- No broken path references detected in this feature’s added traceability links.

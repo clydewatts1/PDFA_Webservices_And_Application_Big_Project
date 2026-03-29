@@ -63,3 +63,29 @@ This project records external assistance and references used during design and i
 - Contract source: `specs/004-mcp-stdio-compat/contracts/mcp-transport-compatibility.md`
 - Quickstart source: `specs/004-mcp-stdio-compat/quickstart.md`
 - Task execution ledger: `specs/004-mcp-stdio-compat/tasks.md`
+
+## Quart Web Tier Integration Sources (Feature 006)
+
+- Specification source: `specs/006-web-tier-integration/spec.md`
+- Implementation plan source: `specs/006-web-tier-integration/plan.md`
+- Task execution ledger: `specs/006-web-tier-integration/tasks.md`
+- Quickstart runbook source: `specs/006-web-tier-integration/quickstart.md`
+- Framework docs reference: Quart documentation (`https://quart.palletsprojects.com/`)
+- Forms/CSRF reference: Flask-WTF documentation (`https://flask-wtf.readthedocs.io/`)
+- Compatibility/legacy note reference: quart-wtf package metadata (used to evaluate package compatibility with current Quart stack)
+- SDK reference: MCP Python SDK (`mcp` package) docs and examples in-repo
+
+## Constitution Documentation Compliance Sources (Feature 008)
+
+- Specification source: `specs/008-constitution-docs/spec.md`
+- Implementation plan source: `specs/008-constitution-docs/plan.md`
+- Contract source: `specs/008-constitution-docs/contracts/documentation-compliance-contract.md`
+- Research and rationale source: `specs/008-constitution-docs/research.md`
+- Data model source: `specs/008-constitution-docs/data-model.md`
+- Quickstart verification source: `specs/008-constitution-docs/quickstart.md`
+- Task execution ledger: `specs/008-constitution-docs/tasks.md`
+- Canonical coverage matrix artifact: `docs/constitution/coverage-matrix.md`
+
+Traceability policy used for this feature:
+- Constitution and feature contracts are normative.
+- README and evidence documents are synchronized delivery surfaces.

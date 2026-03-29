@@ -10,7 +10,7 @@
 ### Session 2026-03-16
 
 - Q: Which MCP transport should the web tier connect to? → A: SSE transport at `http://127.0.0.1:5001/sse`. Chosen for long-lived server-to-server communication and alignment with existing 005-fastmcp-refactor infrastructure.
-- Q: Should entity list and single-entity reads use separate MCP tools or a polymorphic tool? → A: Two separate tools per entity type (e.g., `get_roles_for_workflow` for list, `get_role_by_id` for single). Cleaner separation of concerns and simpler test mocking.
+- Q: Should entity list and single-entity reads use separate MCP tools or a polymorphic tool? → A: Two separate tools per entity type using canonical MCP names (e.g., `role.list` for list and `role.get` for single record). Cleaner separation of concerns and simpler test mocking.
 - Q: What should happen when a form submission returns validation errors? → A: Re-render the form on the same page with user input preserved in session. Standard web behavior; preserves user context.
 - Q: Which entity attributes should be visible in create/edit forms? → A: Hide temporal/audit columns (`eff_from_datetime`, `eff_to_datetime`, `delete_ind`, `insert_user_name`, `update_user_name`); show business attributes only. MCP backend manages all temporal/audit logic per Constitution Principle III.a.
 - Q: How should the MCP session be initialized when Quart starts? → A: Create session in app factory (`create_app()`); validate connectivity on first `GET /` health check, not at startup. Supports independent tier startup and cloud-native loose coupling.
@@ -74,13 +74,13 @@ As an authenticated user, I need to see a list of available workflows and select
 1. After successful login, accessing `/dashboard`
 2. Verifying MCP tool (e.g., `get_workflows_for_actor`) is awaited to populate the workflow list
 3. Submitting `POST /dashboard` to select a workflow
-4. Confirming active workflow ID is stored in Quart session
+4. Confirming active_workflow_name is stored in Quart session
 5. Validating redirect to main navigation dashboard occurs
 
 **Acceptance Scenarios**:
 
 1. **Given** logged-in user, **When** accessing `/dashboard`, **Then** list of workflows is rendered from MCP call and selection form is displayed
-2. **Given** workflow selection submitted, **When** `POST /dashboard` is processed, **Then** active workflow ID is persisted in session and user redirects to `/entities`
+2. **Given** workflow selection submitted, **When** `POST /dashboard` is processed, **Then** active_workflow_name is persisted in session and user redirects to `/entities`
 3. **Given** no workflows exist, **When** returning from MCP, **Then** user sees message to create new workflow and create form is available
 
 ---
@@ -100,8 +100,8 @@ As an authenticated user with active workflow context, I need to see a navigatio
 **Acceptance Scenarios**:
 
 1. **Given** user with active workflow, **When** accessing `/entities`, **Then** sticky Bootstrap navbar displays with all entity category links
-2. **Given** user clicks "Roles" link, **When** `GET /roles` is processed, **Then** active workflow ID is read from session and role list is fetched via MCP
-3. **Given** session loses active workflow ID, **When** navigating to entity list, **Then** user is redirected back to workflow selection
+2. **Given** user clicks "Roles" link, **When** `GET /roles` is processed, **Then** active_workflow_name is read from session and role list is fetched via MCP
+3. **Given** session loses active_workflow_name, **When** navigating to entity list, **Then** user is redirected back to workflow selection
 
 ---
 
@@ -113,14 +113,14 @@ As a user, I need to see a table of records for an entity type (e.g., Roles) fil
 
 **Independent Test**: Can be fully tested by:
 1. Accessing `/roles` with active workflow in session
-2. Verifying MCP tool (e.g., `get_roles_for_workflow`) is called with workflow ID
+2. Verifying MCP tool (e.g., `role.list`) is called with `WorkflowName` from session
 3. Confirming returned records are rendered in HTML table with columns for key fields
 4. Validating Edit and Delete action links are present for each row
 5. Testing with empty result set to ensure graceful handling
 
 **Acceptance Scenarios**:
 
-1. **Given** active workflow, **When** accessing `/roles`, **Then** MCP `get_roles_for_workflow` is awaited and results render in table
+1. **Given** active workflow, **When** accessing `/roles`, **Then** MCP `role.list` is awaited and results render in table
 2. **Given** each table row, **When** displayed, **Then** Edit link routes to `/roles/edit/<id>` and Delete triggers confirmation
 3. **Given** no records for workflow, **When** MCP returns empty list, **Then** table shows "No records" message and Create New button is available
 
@@ -181,7 +181,7 @@ The web tier MUST be implemented using Quart (async Flask) with Jinja2 templatin
 The Quart application MUST NOT import SQLAlchemy, execute SQL directly, or maintain data state beyond HTTP session scope. All state persistence and business logic MUST be delegated to the MCP backend via `await mcp_session.call_tool()`.
 
 **FR-003: Official MCP Python SDK Client with SSE Transport**  
-The web tier MUST use the official Python MCP SDK (mcp.client.http.http_client) to communicate via SSE transport at `http://127.0.0.1:5001/sse`. Connection management MUST establish a single global async session in the app factory (`create_app()`), available to all routes. MCP session initialization MUST NOT block web tier startup; connectivity validation MUST occur on the first landing-page request (`GET /` health check).
+The web tier MUST use the official Python MCP SDK (`mcp`) with `mcp.client.sse.sse_client` and `mcp.ClientSession` to communicate via SSE transport at `http://127.0.0.1:5001/sse`. Connection management MUST establish a single global async session in the app factory (`create_app()`), available to all routes. MCP session initialization MUST NOT block web tier startup; connectivity validation MUST occur on the first landing-page request (`GET /` health check).
 
 **FR-004: Tier Isolation & Testing Boundary**  
 Route-level unit tests MUST use `AsyncMock` to mock the MCP session rather than making real network calls. Test suite MUST verify Quart routes in isolation from the actual MCP server (Constitution Principle VI).
@@ -196,13 +196,13 @@ Landing page (`GET /`) MUST call MCP `get_system_health` on each load and displa
 Login route (`POST /login`) MUST await MCP `user_logon` tool, set secure Quart session cookie on success with user identifier, and redirect authenticated users to workflow selection page.
 
 **FR-008: Workflow/Workspace Selection**  
-Dashboard route (`/dashboard`) MUST retrieve user's available workflows via MCP tool, render selection form, accept `POST` submission, persist selected `active_workflow_id` in Quart session, and redirect to main entity navigation.
+Dashboard route (`/dashboard`) MUST retrieve user's available workflows via MCP tool, render selection form, accept `POST` submission, persist selected `active_workflow_name` in Quart session, and redirect to main entity navigation.
 
 **FR-009: Contextual Entity Navigation**  
-Main navigation bar MUST render links to entity categories (Workflows, Roles, Guards, Interactions, Interaction Components). All routes MUST read `active_workflow_id` from session and pass it to MCP tools to filter results by workflow.
+Main navigation bar MUST render links to entity categories (Workflows, Roles, Guards, Interactions, Interaction Components). All routes MUST read `active_workflow_name` from session and pass it to MCP tools to filter results by workflow.
 
 **FR-010: List Views with Table Rendering (Two-Tool Pattern)**  
-Entity list routes (e.g., `/roles`) MUST call a dedicated MCP list tool for the entity type (e.g., `get_roles_for_workflow` with `workflow_id` parameter). Single-entity fetch routes MUST call a separate tool (e.g., `get_role_by_id` with `role_id` parameter). Both tools MUST be awaited separately in their respective routes. List tool results MUST render in an HTML table with action columns (Edit, Delete) and handle empty result sets gracefully.
+Entity list routes (e.g., `/roles`) MUST call a dedicated MCP list tool for the entity type (e.g., `role.list` with optional `WorkflowName` filter). Single-entity fetch routes MUST call a separate tool (e.g., `role.get` with business key parameters `RoleName` and `WorkflowName`). Both tools MUST be awaited separately in their respective routes. List tool results MUST render in an HTML table with action columns (Edit, Delete) and handle empty result sets gracefully.
 
 **FR-011: Edit & Create Pages with Form Submission (Business Fields Only)**  
 Edit and create routes MUST render HTML forms containing ONLY business attribute fields (e.g., `role_name`, `role_description`); temporal columns (`eff_from_datetime`, `eff_to_datetime`) and audit columns (`insert_user_name`, `update_user_name`) MUST be hidden from the user and managed exclusively by the MCP backend. Form submission (`POST`) MUST map request form data to MCP tool parameters (e.g., `update_role`), await tool result, redirect to list view on success, and re-render the same form page with validation errors and user input preserved in session on failure.
@@ -271,11 +271,11 @@ All templates render valid HTML5 with Bootstrap 5 classes; form inputs have labe
 **Storage**: In-memory (development) or Redis (production)  
 **Contents**:
 - `user_id`: User identifier from successful `user_logon`
-- `active_workflow_id`: Selected workflow ID from workflow selection
+- `active_workflow_name`: Selected workflow name from workflow selection
 - `created_at`: Session creation timestamp
 
 ### MCP Session (Global)
-**Type**: `mcp.client.http.HttpClientSession` with SSE transport  
+**Type**: `mcp.ClientSession` created from `mcp.client.sse.sse_client` transport  
 **Endpoint**: `http://127.0.0.1:5001/sse` (configurable via `MCP_SERVER_URL` environment variable)  
 **Initialization**: Created in app factory function (`create_app()`); NOT in startup hook  
 **Lifetime**: Application-level singleton  
@@ -341,7 +341,7 @@ All templates render valid HTML5 with Bootstrap 5 classes; form inputs have labe
 ### Phase 2: Workspace Selection (P1)
 - Dashboard page to list available workflows
 - Workflow selection form
-- Session persistence of active workflow ID
+- Session persistence of active_workflow_name
 - Redirect to main navigation
 
 ### Phase 3: Main Dashboard & Navigation (P2)

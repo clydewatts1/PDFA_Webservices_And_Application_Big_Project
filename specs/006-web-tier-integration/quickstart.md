@@ -1,7 +1,7 @@
 # Quickstart: Web Tier Integration
 
 **Feature**: `006-web-tier-integration`  
-**Stack**: Quart + MCP Python SDK (SSE) | Python 3.13 | Bootstrap 5 | quart-wtf
+**Stack**: Quart + MCP Python SDK (SSE) | Python 3.13 | Bootstrap 5 | flask-wtf
 
 ---
 
@@ -75,13 +75,19 @@ QUART_ENV=development
 QUART_DEBUG=1
 ```
 
+Default mock credentials are configured in `WB-Workflow-Configuration.yaml`:
+
+- `admin` / `password123`
+- `reviewer` / `reviewer_pass`
+- `test_user` / `test_pass`
+
 ---
 
 ## Installation
 
 ```bash
-# Install project dependencies (adds quart, quart-wtf to existing requirements.txt)
-.venv/Scripts/pip install quart quart-wtf
+# Install project dependencies (adds quart, flask-wtf to existing requirements.txt)
+.venv/Scripts/pip install quart flask-wtf
 
 # Or if requirements.txt is updated:
 .venv/Scripts/pip install -r requirements.txt
@@ -94,21 +100,29 @@ QUART_DEBUG=1
 ### 1. Start the MCP Server (in a separate terminal)
 
 ```bash
-.venv/Scripts/python -m mcp_server.src.server
+.venv/Scripts/python -m mcp_server.src.server --transport sse
 # Server listens at http://127.0.0.1:5001/sse by default
 ```
 
 ### 2. Start the Quart Web App
 
 ```bash
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^\s*#' -or $_ -match '^\s*$') { return }
+    $name, $value = $_ -split '=', 2
+    Set-Item -Path "Env:$name" -Value $value
+}
+echo $env:SESSION_SECRET
+echo $env:MCP_SERVER_URL
+python -m quart_web.src.app
 .venv/Scripts/python -m quart_web.src.app
-# App listens at http://127.0.0.1:5000 by default
+# App listens at http://127.0.0.1:5002 by default
 ```
 
 Or with the Quart CLI:
 
 ```bash
-QUART_APP=quart_web.src.app:create_app .venv/Scripts/quart run --port 5000
+QUART_APP=quart_web.src.app:create_app .venv/Scripts/quart run --port 5002
 ```
 
 ---
@@ -117,14 +131,15 @@ QUART_APP=quart_web.src.app:create_app .venv/Scripts/quart run --port 5000
 
 After starting both servers:
 
-1. **Health check**: Open `http://localhost:5000/` — landing page should show "MCP Healthy ✓"
-2. **Login**: Navigate to `/login`, enter valid credentials → redirected to `/dashboard`
-3. **Workspace selection**: `/dashboard` shows workflow dropdown → select one → redirected to `/entities`
-4. **Role list**: Navigate to `/roles` → list of roles filtered by selected workflow
-5. **Create role**: `/roles/new` → fill form → submit → see new record in list
-6. **Edit role**: `/roles/<name>/edit` → change a field → submit → updated record
-7. **Delete role**: POST to `/roles/<name>/delete` → record removed from list
-8. **Logout**: POST to `/logout` → redirected to landing page, session cleared
+1. **Landing health (healthy)**: Open `http://localhost:5002/` — page shows `MCP Healthy` badge and enabled login button
+2. **Landing health (unavailable fallback)**: Stop MCP server, refresh `/` — page shows `MCP Unavailable` and disabled login button
+3. **Login**: Navigate to `/login`, enter `admin` / `password123` → redirected to `/dashboard`
+4. **Workspace selection**: `/dashboard` shows workflow dropdown → select one → redirected to `/entities`
+5. **Role list**: Navigate to `/roles` → list of roles filtered by selected workflow
+6. **Create role**: `/roles/new` → fill form → submit → see new record in list
+7. **Edit role**: `/roles/<name>/edit` → change a field → submit → updated record
+8. **Delete role**: POST to `/roles/<name>/delete` → record removed from list
+9. **Logout**: POST to `/logout` → redirected to landing page, session cleared
 
 ---
 
@@ -191,3 +206,19 @@ def mock_mcp_client(app):
 5. **Double-submit prevention**: All submit buttons include `onclick="this.disabled=true; this.form.submit()"`.
 6. **Temporal columns**: Never render `EffFromDateTime`, `EffToDateTime`, `DeleteInd`, `InsertUserName`, `UpdateUserName` in forms or list views.
 7. **Error handling**: `MCPTimeoutError` → 504 page; `MCPConnectionError` → 503 page; entity tool errors → re-render form with error message.
+
+---
+
+## Validated Command Flow (Phase 10)
+
+1. Install dependencies:
+    - `.venv/Scripts/pip install -r requirements.txt`
+2. Run focused unit tests:
+    - `.venv/Scripts/python.exe -m pytest quart_web/tests/unit/ -q`
+    - Expected output pattern: `... [100%]` and all tests pass
+3. Run integration happy path:
+    - `.venv/Scripts/python.exe -m pytest quart_web/tests/integration/test_role_crud_e2e.py -q`
+    - Expected output pattern: `. [100%]`
+4. Run full web-tier test matrix:
+    - `.venv/Scripts/python.exe -m pytest quart_web/tests/ -q`
+    - Expected output pattern: all tests pass with no failures

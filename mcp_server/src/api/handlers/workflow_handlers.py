@@ -92,7 +92,7 @@ def make_workflow_handlers(session_factory: sessionmaker) -> dict[str, Handler]:
         try:
             with session_factory() as session:
                 return _normalize_crud_result(
-                    {"workflows": list_workflows(session, limit=limit, offset=offset)},
+                    {"records": list_workflows(session, limit=limit, offset=offset)},
                     "workflow.list completed",
                 )
         except ServiceError as exc:

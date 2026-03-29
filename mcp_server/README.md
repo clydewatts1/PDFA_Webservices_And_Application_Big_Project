@@ -14,6 +14,15 @@ This directory contains the MCP JSON-RPC service, SQLAlchemy-backed persistence 
 - Flask communicates only over HTTP JSON-RPC and does not import MCP persistence internals.
 - Database remains a state store and does not host service logic.
 
+## Startup Commands
+
+- Canonical network mode (for Quart/web-tier integration):
+	- `python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001`
+- Optional inspector/local mode:
+	- `python -m mcp_server.src.server --transport stdio`
+
+Root canonical runbook remains in `README.md`.
+
 ## Subdirectories
 
 - `src/api/` JSON-RPC app and handlers

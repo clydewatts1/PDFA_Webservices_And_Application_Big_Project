@@ -145,7 +145,7 @@ class TestRoleGetListDelete:
         rpc(mcp_client, "role.create", {"RoleName": "RA", "WorkflowName": "ListWF", "actor": "u"})
         rpc(mcp_client, "role.create", {"RoleName": "RB", "WorkflowName": "ListWF", "actor": "u"}, rid=2)
         body = rpc(mcp_client, "role.list", {"WorkflowName": "ListWF"}, rid=3)
-        names = [r["RoleName"] for r in body["result"]["roles"]]
+        names = [r["RoleName"] for r in body["result"]["records"]]
         assert "RA" in names and "RB" in names
 
     def test_delete_removes_from_list(self, mcp_client) -> None:
@@ -153,7 +153,7 @@ class TestRoleGetListDelete:
         rpc(mcp_client, "role.create", {"RoleName": "RDel", "WorkflowName": "DelWF", "actor": "u"})
         rpc(mcp_client, "role.delete", {"RoleName": "RDel", "WorkflowName": "DelWF", "actor": "u"}, rid=2)
         body = rpc(mcp_client, "role.list", {"WorkflowName": "DelWF"}, rid=3)
-        names = [r["RoleName"] for r in body["result"]["roles"]]
+        names = [r["RoleName"] for r in body["result"]["records"]]
         assert "RDel" not in names
 
 
@@ -246,7 +246,7 @@ class TestInteractionComponentContract:
             "InteractionComponentName": "IC1", "WorkflowName": "ICWF2", "actor": "u"
         })
         body = rpc(mcp_client, "interaction_component.list", {"WorkflowName": "ICWF2"}, rid=2)
-        assert any(ic["InteractionComponentName"] == "IC1" for ic in body["result"]["interaction_components"])
+        assert any(ic["InteractionComponentName"] == "IC1" for ic in body["result"]["records"])
 
 
 # ---------------------------------------------------------------------------
@@ -286,5 +286,5 @@ class TestUnitOfWorkContract:
     def test_list_unit_of_works(self, mcp_client) -> None:
         rpc(mcp_client, "unit_of_work.create", {"UnitOfWorkID": "UOW-L1", "actor": "u"})
         body = rpc(mcp_client, "unit_of_work.list", {}, rid=2)
-        ids = [u["UnitOfWorkID"] for u in body["result"]["unit_of_works"]]
+        ids = [u["UnitOfWorkID"] for u in body["result"]["records"]]
         assert "UOW-L1" in ids

@@ -124,7 +124,7 @@ def make_entity_handlers(
         try:
             with session_factory() as session:
                 return _normalize_crud_result(
-                    {f"{prefix}s": list_entities(session, config, filters, limit=limit, offset=offset)},
+                    {"records": list_entities(session, config, filters, limit=limit, offset=offset)},
                     f"{prefix}.list completed",
                 )
         except ServiceError as exc:
