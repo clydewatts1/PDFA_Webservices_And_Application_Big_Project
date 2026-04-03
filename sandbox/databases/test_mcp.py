@@ -10,7 +10,6 @@ import argparse
 
 from sqlalchemy import Select
 
-from sqlalchemy import Select
 import sandbox.databases.test_mysql as db
 # npx @modelcontextprotocol/inspector .venv/Scripts/python.exe -m sandbox.databases.test_mcp                                                                                                                      
 # stre

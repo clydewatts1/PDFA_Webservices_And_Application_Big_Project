@@ -3,7 +3,7 @@
 **Feature Branch**: `010-postgres-mysql-refactor`  
 **Created**: 2026-04-03  
 **Status**: Draft  
-**Input**: User description: "refactor from postgress to mysql - this is a contitutionation of 009"
+**Input**: User description: "refactor from postgress to mysql - this is a continuation of 009"
 
 ## Clarifications
 
