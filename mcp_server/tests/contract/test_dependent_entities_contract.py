@@ -1,21 +1,17 @@
-"""Contract tests for dependent entity JSON-RPC methods — T019.
+"""Contract tests for dependent entity JSON-RPC methods on the MySQL validation target.
 
-Uses an in-memory SQLite DB via the MCP Flask test client.
 All 5 entity types are covered; Role is tested most thoroughly as the
 canonical representative, with focused tests for each other entity type.
 """
 from __future__ import annotations
 
 import json
+
 import pytest
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from mcp_server.src.api.app import create_app
 from mcp_server.src.api.handlers.dependent_handlers import make_all_dependent_handlers
 from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
-from mcp_server.src.models.base import Base
+from mcp_server.tests.conftest import build_test_client
 
 
 # ---------------------------------------------------------------------------
@@ -23,21 +19,12 @@ from mcp_server.src.models.base import Base
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def mcp_client(tmp_path):
-    db_url = f"sqlite:///{tmp_path}/contract_dep.db"
-    engine = create_engine(db_url, connect_args={"check_same_thread": False})
-    Base.metadata.create_all(engine)
-    sf = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-    app = create_app()
-    # Register workflow handlers (needed for FK validation)
-    for m, h in make_workflow_handlers(sf).items():
-        app.register_jsonrpc_handler(m, h)  # type: ignore[attr-defined]
-    for m, h in make_all_dependent_handlers(sf).items():
-        app.register_jsonrpc_handler(m, h)  # type: ignore[attr-defined]
-
-    app.config["TESTING"] = True
-    return app.test_client()
+def mcp_client(mysql_session_factory):
+    return build_test_client(
+        mysql_session_factory,
+        make_workflow_handlers(mysql_session_factory),
+        make_all_dependent_handlers(mysql_session_factory),
+    )
 
 
 def rpc(client, method: str, params: dict, rid: int = 1) -> dict:

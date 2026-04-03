@@ -3,42 +3,29 @@ from __future__ import annotations
 import json
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-from mcp_server.src.api.app import create_app
 from mcp_server.src.api.handlers.dependent_handlers import make_all_dependent_handlers
 from mcp_server.src.api.handlers.instance_handlers import make_instance_handlers
 from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
-from mcp_server.src.models.base import Base, HIGH_DATE
+from mcp_server.src.models.base import HIGH_DATE
 from mcp_server.src.models.dependent import Guard, Interaction, InteractionComponent, Role, UnitOfWork
 from mcp_server.src.models.instance import Instance, InstanceHist
+from mcp_server.tests.conftest import build_test_client
 
 
 @pytest.fixture()
-def db_engine(tmp_path):
-    engine = create_engine(f"sqlite:///{tmp_path}/instance_e2e.db", connect_args={"check_same_thread": False})
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-
-
-@pytest.fixture()
-def session_factory(db_engine):
-    return sessionmaker(bind=db_engine, autocommit=False, autoflush=False)
+def session_factory(mysql_session_factory):
+    return mysql_session_factory
 
 
 @pytest.fixture()
 def client(session_factory):
-    app = create_app()
-    for m, h in make_workflow_handlers(session_factory).items():
-        app.register_jsonrpc_handler(m, h)  # type: ignore[attr-defined]
-    for m, h in make_all_dependent_handlers(session_factory).items():
-        app.register_jsonrpc_handler(m, h)  # type: ignore[attr-defined]
-    for m, h in make_instance_handlers(session_factory).items():
-        app.register_jsonrpc_handler(m, h)  # type: ignore[attr-defined]
-    app.config["TESTING"] = True
-    return app.test_client()
+    return build_test_client(
+        session_factory,
+        make_workflow_handlers(session_factory),
+        make_all_dependent_handlers(session_factory),
+        make_instance_handlers(session_factory),
+    )
 
 
 def rpc(client, method: str, params: dict, rid: int = 1) -> dict:

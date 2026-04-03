@@ -17,6 +17,10 @@ branch_labels = None
 depends_on = None
 
 
+def _primary_key_column() -> sa.Column:
+    return sa.Column("id", sa.Integer(), autoincrement=True, nullable=False)
+
+
 def _control_columns() -> list[sa.Column]:
     return [
         sa.Column("EffFromDateTime", sa.DateTime(), nullable=False),
@@ -29,7 +33,7 @@ def _control_columns() -> list[sa.Column]:
 
 def upgrade() -> None:
     op.create_table("Workflow",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowDescription", sa.Text(), nullable=True),
         sa.Column("WorkflowContextDescription", sa.Text(), nullable=True),
@@ -39,7 +43,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Workflow_Hist",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowDescription", sa.Text(), nullable=True),
         sa.Column("WorkflowContextDescription", sa.Text(), nullable=True),
@@ -48,7 +52,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Role",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("RoleName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -61,7 +65,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Role_Hist",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("RoleName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -74,7 +78,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Interaction",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("InteractionName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -85,7 +89,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Interaction_Hist",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("InteractionName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -96,7 +100,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Guard",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("GuardName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -108,7 +112,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Guard_Hist",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("GuardName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -120,7 +124,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("InteractionComponent",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("InteractionComponentName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -133,7 +137,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("InteractionComponent_Hist",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("InteractionComponentName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceName", sa.String(length=128), nullable=True),
@@ -146,7 +150,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("UnitOfWork",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("UnitOfWorkID", sa.String(length=128), nullable=False),
         sa.Column("UnitOfWorkType", sa.String(length=64), nullable=True),
         sa.Column("UnitOfWorkPayLoad", sa.Text(), nullable=True),
@@ -155,7 +159,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("UnitOfWork_Hist",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("UnitOfWorkID", sa.String(length=128), nullable=False),
         sa.Column("UnitOfWorkType", sa.String(length=64), nullable=True),
         sa.Column("UnitOfWorkPayLoad", sa.Text(), nullable=True),
@@ -163,7 +167,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Instance",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("InstanceName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceDescription", sa.Text(), nullable=True),
@@ -177,7 +181,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table("Instance_Hist",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        _primary_key_column(),
         sa.Column("InstanceName", sa.String(length=128), nullable=False),
         sa.Column("WorkflowName", sa.String(length=128), nullable=False),
         sa.Column("InstanceDescription", sa.Text(), nullable=True),

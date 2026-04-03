@@ -207,3 +207,38 @@ Interpretation:
 
 - Principle V supporting evidence paths remain valid and resolvable from root README pointers.
 - No broken path references detected in this feature’s added traceability links.
+
+## Feature 010 MySQL Cutover Validation
+
+- Date (UTC): 2026-04-03
+- Branch: `main`
+- MySQL validation target (`DB_URL`): not available in current shell (`MCP_TEST_DB_URL`, `TEST_DB_URL`, and `DB_URL` all unset)
+- Rollback decision owner: pending live cutover run
+- Rollback window start (`CUTOVER_WINDOW_START_UTC`): pending live cutover run
+- Rollback deadline (`rollback_window_end_utc`): pending live cutover run
+
+### Migration and Runtime Evidence
+
+- Baseline-to-head migration command: `python -m alembic -c database/alembic.ini upgrade head`
+- Migration revision result: pending live MySQL run; automated smoke test added in `mcp_server/tests/integration/test_workflow_e2e.py`
+- MCP startup command: `python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001`
+- Health check result: pending live MySQL run; MySQL success and PostgreSQL rejection assertions added in `mcp_server/tests/contract/test_workflow_contract.py`
+- Startup cutover log event captured: pending live MySQL run; startup now emits `mcp.cutover.window.started` when cutover env vars are set
+
+### Contract and Integration Evidence
+
+- Contract suite command: `pytest mcp_server/tests/contract -v --tb=short`
+- Contract suite result: collection/import validation succeeded, but live sign-off did not run because no MySQL validation URL was available in shell
+- Integration suite command: `pytest mcp_server/tests/integration -v --tb=short`
+- Integration suite result: collection/import validation succeeded, but live sign-off did not run because no MySQL validation URL was available in shell
+- Combined dry-run command: `pytest mcp_server/tests/contract mcp_server/tests/integration -q -rs`
+- Combined dry-run outcome: 85 tests skipped with reason `Set MCP_TEST_DB_URL to a MySQL database URL before running MCP contract/integration suites`
+- PostgreSQL runtime grep result: `README.md` and `.env.example` are clean; remaining matches in `docs/` and `specs/010-postgres-mysql-refactor/` are historical, rollback-governance, or feature-traceability references; `mcp_server/` matches are expected PostgreSQL-rejection guard code and its tests
+
+### Cutover Decision Log
+
+- Decision timestamp (UTC): pending live cutover run
+- Outcome (`rollback_executed` or `fix_forward`): pending live cutover run
+- Trigger reason: pending live cutover run
+- Approved by: pending live cutover run
+- Notes: local `.env` still points to `sqlite:///./local.db`; switch to a reachable MySQL URL before running the feature-010 sign-off commands

@@ -94,12 +94,16 @@ pip install -r requirements-dev.txt
 Create `.env` at repository root:
 
 ```env
-DB_URL=sqlite:///./local.db
+DB_URL=mysql+pymysql://user:password@127.0.0.1:3306/pdfa_workflow?charset=utf8mb4
 DEFAULT_ACTOR=local_dev
+MCP_CONFIG_PATH=WB-Workflow-Configuration.yaml
 MCP_SERVER_URL=http://127.0.0.1:5001/sse
 SESSION_SECRET=replace-with-a-random-secret-value
 FLASK_HOST=127.0.0.1
 FLASK_PORT=5000
+CUTOVER_WINDOW_START_UTC=2026-04-03T12:00:00Z
+ROLLBACK_WINDOW_HOURS=24
+CUTOVER_DECISION_OWNER=on-call-reviewer
 ```
 
 MCP workflow configuration file:
@@ -142,10 +146,10 @@ python -m flask_web.src.app
 
 ### 9) Run tests
 
-MCP server tests:
+MCP contract and integration sign-off on MySQL:
 
 ```powershell
-pytest mcp_server/tests/ -v --tb=short
+pytest mcp_server/tests/contract mcp_server/tests/integration -v --tb=short
 ```
 
 Quart tests:
@@ -153,6 +157,8 @@ Quart tests:
 ```powershell
 pytest quart_web/tests/ -v --tb=short
 ```
+
+SQLite remains acceptable only for existing unit-only coverage. Contract and integration sign-off must use a MySQL `DB_URL`.
 
 Full suite:
 
@@ -193,11 +199,11 @@ pytest -v --tb=short
 __0. Run Server__
 
 ```
-$env:DB_URL="sqlite:///./local.db"
+$env:DB_URL="mysql+pymysql://user:password@127.0.0.1:3306/pdfa_workflow?charset=utf8mb4"
 $env:MCP_CONFIG_PATH="WB-Workflow-Configuration.yaml"
 $env:MCP_HOST="127.0.0.1"
 $env:MCP_PORT="5001"
-python -m mcp_server.src.api.app
+python -m mcp_server.src.server --transport sse --host 127.0.0.1 --port 5001
 ```
 
 __1. Open SSE stream__

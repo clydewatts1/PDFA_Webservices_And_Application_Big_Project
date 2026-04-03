@@ -86,6 +86,18 @@ This project records external assistance and references used during design and i
 - Task execution ledger: `specs/008-constitution-docs/tasks.md`
 - Canonical coverage matrix artifact: `docs/constitution/coverage-matrix.md`
 
+## PostgreSQL to MySQL Continuation Sources (Feature 010)
+
+- Specification source: `specs/010-postgres-mysql-refactor/spec.md`
+- Implementation plan source: `specs/010-postgres-mysql-refactor/plan.md`
+- Contract source: `specs/010-postgres-mysql-refactor/contracts/migration-and-cutover-contract.md`
+- Research and rationale source: `specs/010-postgres-mysql-refactor/research.md`
+- Data model source: `specs/010-postgres-mysql-refactor/data-model.md`
+- Quickstart verification source: `specs/010-postgres-mysql-refactor/quickstart.md`
+- Task execution ledger: `specs/010-postgres-mysql-refactor/tasks.md`
+- Evidence log target: `docs/test_evidence.md`
+
 Traceability policy used for this feature:
 - Constitution and feature contracts are normative.
 - README and evidence documents are synchronized delivery surfaces.
+- Historical PostgreSQL references are retained only where they explain rollback governance or feature lineage.

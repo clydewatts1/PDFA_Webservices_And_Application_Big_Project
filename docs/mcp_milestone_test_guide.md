@@ -6,19 +6,22 @@ This guide explains how to configure the MCP server and database, execute milest
 ## 1) Prerequisites
 - Python virtual environment available and dependencies installed.
 - Node.js installed for required inspector command.
-- SQLite CLI (`sqlite3`) installed for primary manual verification.
-- Optional: PostgreSQL + `psql` for equivalent query checks.
+- Reachable MySQL 8.x instance for contract/integration and cutover validation.
+- Legacy PostgreSQL retained only for the 24-hour rollback window; it is not the default runtime target.
 
 ## 2) Environment Setup
 1. Create `.env` from `.env.example`.
 2. Set required values:
 
 ```env
-DB_URL=sqlite:///./local.db
+DB_URL=mysql+pymysql://user:password@127.0.0.1:3306/pdfa_workflow?charset=utf8mb4
 DEFAULT_ACTOR=local_dev
 MCP_CONFIG_PATH=WB-Workflow-Configuration.yaml
 MCP_HOST=127.0.0.1
 MCP_PORT=5001
+CUTOVER_WINDOW_START_UTC=2026-04-03T12:00:00Z
+ROLLBACK_WINDOW_HOURS=24
+CUTOVER_DECISION_OWNER=on-call-reviewer
 ```
 
 ## 3) MCP Configuration
@@ -94,12 +97,11 @@ Use inspector to invoke and verify:
 3. Execute update (`*.update`) and verify changed fields.
 4. Execute delete (`*.delete`) and verify logical-delete semantics.
 
-## 7) Manual Database Verification (Primary: SQLite)
+## 7) Manual Database Verification (Primary: MySQL)
 After running tool operations, query data directly:
 
-```powershell
-sqlite3 local.db
-.tables
+```sql
+SHOW TABLES;
 SELECT WorkflowName, DeleteInd FROM Workflow LIMIT 10;
 SELECT RoleName, WorkflowName, DeleteInd FROM Role LIMIT 10;
 SELECT InteractionName, WorkflowName, DeleteInd FROM Interaction LIMIT 10;
@@ -111,17 +113,17 @@ Manual verification checks:
 - Created records appear in expected table.
 - Updated records show changed values and current-row behavior.
 - Deleted rows are represented by logical-delete semantics where applicable.
+- Current and `_Hist` table pairs are present after baseline-to-head migration.
 
-## 8) Optional PostgreSQL Equivalent Commands
+## 8) Rollback-Window Governance Checks
 
-```sql
-\dt
-SELECT "WorkflowName", "DeleteInd" FROM "Workflow" LIMIT 10;
-SELECT "RoleName", "WorkflowName", "DeleteInd" FROM "Role" LIMIT 10;
-SELECT "InteractionName", "WorkflowName", "DeleteInd" FROM "Interaction" LIMIT 10;
-SELECT "GuardName", "WorkflowName", "DeleteInd" FROM "Guard" LIMIT 10;
-SELECT "InteractionComponentName", "WorkflowName", "DeleteInd" FROM "InteractionComponent" LIMIT 10;
-```
+During the active 24-hour rollback window, record:
+- `cutover_start_utc`
+- `rollback_deadline_utc`
+- `decision_owner`
+- rollback trigger reason when a rollback or fix-forward decision is made
+
+Legacy PostgreSQL may be queried only for rollback readiness during this window. It must not be restored as the default runtime target after window expiry.
 
 ## 9) Negative-Case Verification
 - Missing/invalid `WB-Workflow-Configuration.yaml` path/content.

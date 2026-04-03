@@ -1,19 +1,25 @@
-"""Integration tests: full workflow lifecycle through MCP server with SQLite — T013.
+"""Integration tests for workflow lifecycle and MySQL migration execution.
 
-Tests the flow: [Flask test client] -> [MCP /rpc endpoint] -> [SQLAlchemy / SQLite]
-covering the complete create → get → update → delete lifecycle and temporal semantics.
+Tests the flow: [Flask test client] -> [MCP /rpc endpoint] -> [SQLAlchemy / MySQL]
+covering migration execution plus create → get → update → delete lifecycle and temporal semantics.
 """
 from __future__ import annotations
 
 import json
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from pathlib import Path
 
-from mcp_server.src.api.app import create_app
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import text
+
+from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
 from mcp_server.src.models.base import Base
 from mcp_server.src.models.workflow import Workflow, WorkflowHist
-from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
+from mcp_server.tests.conftest import build_test_client
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 # ---------------------------------------------------------------------------
@@ -21,28 +27,13 @@ from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def db_engine(tmp_path):
-    engine = create_engine(
-        f"sqlite:///{tmp_path}/integration.db",
-        connect_args={"check_same_thread": False},
-    )
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-
-
-@pytest.fixture()
-def session_factory(db_engine):
-    return sessionmaker(bind=db_engine, autocommit=False, autoflush=False)
+def session_factory(mysql_session_factory):
+    return mysql_session_factory
 
 
 @pytest.fixture()
 def client(session_factory):
-    app = create_app()
-    for method, handler in make_workflow_handlers(session_factory).items():
-        app.register_jsonrpc_handler(method, handler)  # type: ignore[attr-defined]
-    app.config["TESTING"] = True
-    return app.test_client()
+    return build_test_client(session_factory, make_workflow_handlers(session_factory))
 
 
 def rpc(client, method: str, params: dict, request_id: int = 1) -> dict:
@@ -52,6 +43,39 @@ def rpc(client, method: str, params: dict, request_id: int = 1) -> dict:
         content_type="application/json",
     )
     return resp.get_json()
+
+
+# ---------------------------------------------------------------------------
+# Migration execution
+# ---------------------------------------------------------------------------
+
+class TestMigrationExecution:
+    def test_migration_baseline_to_head_executes_on_mysql(self, mysql_test_engine, mysql_test_db_url, monkeypatch) -> None:
+        Base.metadata.drop_all(mysql_test_engine, checkfirst=True)
+        with mysql_test_engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+
+        config = Config(str(REPO_ROOT / "database" / "alembic.ini"))
+        monkeypatch.setenv("DB_URL", mysql_test_db_url)
+
+        try:
+            command.upgrade(config, "head")
+
+            with mysql_test_engine.begin() as connection:
+                revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                table_names = {
+                    row[0]
+                    for row in connection.execute(
+                        text("SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()")
+                    )
+                }
+
+            assert revision == "0001_current_history_tables"
+            assert {"Workflow", "Workflow_Hist", "Instance", "Instance_Hist"}.issubset(table_names)
+        finally:
+            Base.metadata.drop_all(mysql_test_engine, checkfirst=True)
+            with mysql_test_engine.begin() as connection:
+                connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
 
 
 # ---------------------------------------------------------------------------
