@@ -1,18 +1,17 @@
-"""Contract tests for workflow.create and workflow.update JSON-RPC methods — T012.
+"""Contract tests for workflow JSON-RPC methods and MySQL runtime health behavior.
 
-These tests verify the JSON-RPC 2.0 protocol envelope and workflow-specific error codes
-using the MCP Flask test client backed by an in-memory SQLite database.
+These tests verify the JSON-RPC 2.0 protocol envelope, workflow-specific error codes,
+and MySQL-first health contract behavior through the MCP Flask test client.
 """
 from __future__ import annotations
 
 import json
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-from mcp_server.src.api.app import create_app
-from mcp_server.src.models.base import Base
+import pytest
+
+from mcp_server.src.api.handlers.system_handlers import make_system_handlers
 from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
+from mcp_server.tests.conftest import build_test_client
 
 
 # ---------------------------------------------------------------------------
@@ -20,19 +19,14 @@ from mcp_server.src.api.handlers.workflow_handlers import make_workflow_handlers
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def mcp_client(tmp_path):
-    """Create an MCP Flask test client backed by SQLite."""
-    db_url = f"sqlite:///{tmp_path}/contract_test.db"
-    engine = create_engine(db_url, connect_args={"check_same_thread": False})
-    Base.metadata.create_all(engine)
-    session_factory = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+def mcp_client(mysql_session_factory):
+    """Create an MCP Flask test client backed by the shared MySQL validation database."""
 
-    app = create_app()
-    for method, handler in make_workflow_handlers(session_factory).items():
-        app.register_jsonrpc_handler(method, handler)  # type: ignore[attr-defined]
-
-    app.config["TESTING"] = True
-    return app.test_client()
+    return build_test_client(
+        mysql_session_factory,
+        make_workflow_handlers(mysql_session_factory),
+        make_system_handlers(mysql_session_factory, mock_users={}),
+    )
 
 
 def _rpc(client, method: str, params: dict, request_id: int = 1):
@@ -276,3 +270,26 @@ class TestWorkflowDelete:
         })
         assert "error" in body
         assert body["error"]["data"]["code"] == "workflow_not_found"
+
+
+# ---------------------------------------------------------------------------
+# get_system_health
+# ---------------------------------------------------------------------------
+
+class TestSystemHealthContract:
+    def test_get_system_health_reports_connected_for_mysql(self, mcp_client, mysql_test_db_url, monkeypatch) -> None:
+        monkeypatch.setenv("DB_URL", mysql_test_db_url)
+
+        body = _rpc(mcp_client, "get_system_health", {}, request_id=200)
+
+        assert body["result"]["status"] == "SUCCESS"
+        assert body["result"]["health_status"] == "CONNECTED"
+
+    def test_get_system_health_rejects_legacy_postgresql_runtime(self, mcp_client, monkeypatch) -> None:
+        monkeypatch.setenv("DB_URL", "postgresql://legacy.example:5432/pdfa_workflow")
+
+        body = _rpc(mcp_client, "get_system_health", {}, request_id=201)
+
+        assert body["result"]["status"] == "ERROR"
+        assert body["result"]["health_status_error"] == "legacy_postgresql_runtime"
+        assert "MySQL URL" in body["result"]["health_status_error_detail"]
