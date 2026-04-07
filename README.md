@@ -18,21 +18,23 @@
 - Design / Architect - Google Gemini Pro
 - speckit
 
-_Github Co _Pilot_
-
-Using speckit and Specification Driven Development methodology the big project will be developed.
-
 _Google Gemini_
 
-Google gemini is used as a brainstorm tool and high level architect. 
+Google gemini is used as a brainstorm tool and high level architect.  Gemini is used to generate the high level design and architecture of the system.  It is also used to generate the constitution which governs the project. The constitution is the source of truth for the project and all development must adhere to it. The constituion is a living document and can be updated as the project evolves, but all changes must be made through the Spec Kit workflow and must be approved by the project stakeholders(/speckit/constitution)
 
-_SpecKit_
+[Constitution](.specify/memory/constitution.md)
 
-SpecKit is a utility consisting of a number of prompts which drives the specification life cycle.
+_Spec Kit_
 
-Constitution -> Project Specification -> Technical Specification -> Implementation Plan
+Spec Kit is used to manage the development process and ensure that all development is done in a structured and organized manner.  Spec Kit is used to create and manage the specifications for each feature and to track the progress of each feature through the development process.  Spec Kit is also used to ensure that all development is done in accordance with the constitution and to provide traceability for all development activities.
 
-https://github.com/github/spec-kit
+_Github Co _Pilot_
+
+Github Co Pilot is used as a development assistant to help with code generation and to provide suggestions for code improvements.  Co Pilot is used to generate code snippets and to provide suggestions for code structure and organization.  Co Pilot is also used to help with debugging and to provide suggestions for code optimization.
+
+Prompts saving in `docs/prompts/prompt_log.md` for traceability.
+
+
 
 __Installation__
 
@@ -228,6 +230,41 @@ Invoke-RestMethod `
   -Body $body | ConvertTo-Json -Depth 10
 ```
 
+## Speckit Milestons
+
+The project was done using speckit and Specification Driven Development methodology.  The following milestones were completed in order:
+
+The driver behind breaking the project down into a number of milestones is break down the project into smaller managable logical milestones. It is easier for the llm to focus on a smaller logocal small sections. It allows for continuous review and feedback on the development process.  Example the initial requirement was to use DB -> MCP -> Flask but after Milestone 4 it was clear that Flask was not a good fit for the web tier and Quart was a better fit.  By breaking the project down into smaller milestones it allows for course correction and adjustments to be made as the project evolves. Another issue was that the project is supposed to be database agnostic via SQLAlchemy , early stages of the project were using SQLite . This made it easier to for the LLM to test and develop the tables , MCP server logic and web tier logic without having to worry about the complexities of MySQL. The LLM introduct Postgres but the project required MySQL.
 
 
 
+The following milestones were completed in order:
+- [Milestone 1: Workflow Table Maintenance](specs/001-milestone1-workflow-table-maintenance/)
+- [Milestone 2: Section V Compliance](specs/002-milestone2-section-v/)
+- [Milestone 3: MCP Server Setup Tests](specs/003-milestone3-mcp-server-setup-tests/)
+- [Milestone 4: MCP stdio Transport Compatibility](specs/004-mcp-stdio-compat/)
+- [Milestone 5: Fast MCP Refactor](specs/005-milestone5-fast-mcp-refactor/)
+- [Milestone 6: Web Tier Integration](specs/006-milestone6-web-tier-integration/)
+- [Milestone 7: Quart Web Tier Setup](specs/007-milestone7-quart-web-tier-setup/)
+- [Milestone 8: Constitution Docs](specs/008-constitution-docs/)
+- [Milestone 9: Postgres to mySQL Migration](specs/09-milestone9-postgres-to-mysql-migration/)
+  
+## References
+
+[Alembic Documentation](https://alembic.sqlalchemy.org/en/latest/)  
+
+[MCP Documentation](https://mcp.palletsprojects.com/en/latest/) 
+
+[Pytest Documentation](https://docs.pytest.org/en/stable/) 
+
+[Pymysql Documentation](https://pymysql.readthedocs.io/en/latest/) 
+
+[SQLAlchemy Documentation](https://docs.sqlalchemy.org/en/20/) 
+
+[Quart Documentation](https://quart.palletsprojects.com/en/latest/) 
+
+[Flask Documentation](https://flask.palletsprojects.com/en/latest/)
+
+[Spec Kit Documentation](https://github.com/github/spec-kit)
+
+[Google Gemini Pro](https://ai.google.dev/gemini)
