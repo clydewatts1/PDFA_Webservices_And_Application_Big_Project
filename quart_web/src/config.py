@@ -5,6 +5,9 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
+
+from dotenv import load_dotenv
 
 from quart_web.src.clients.errors import MCPConfigurationError
 
@@ -15,6 +18,26 @@ def _read_bool(env_name: str, default: bool) -> bool:
         return default
     value = raw.strip().lower()
     return value in {"1", "true", "yes", "on"}
+
+
+def _resolve_mcp_server_url() -> str:
+    transport = (os.getenv("MCP_TRANSPORT") or "sse").strip().lower()
+    endpoint = "/mcp" if transport in {"http", "streamable-http"} else "/sse"
+
+    explicit_url = (os.getenv("MCP_SERVER_URL") or "").strip()
+    if explicit_url:
+        parsed = urlparse(explicit_url)
+        if parsed.path.strip("/"):
+            return explicit_url
+        return f"{explicit_url.rstrip('/')}{endpoint}"
+
+    base_url = (os.getenv("MCP_BASE_URL") or "").strip().rstrip("/")
+    if base_url:
+        return f"{base_url}{endpoint}"
+
+    host = (os.getenv("MCP_HOST") or "127.0.0.1").strip() or "127.0.0.1"
+    port = (os.getenv("MCP_PORT") or "5001").strip() or "5001"
+    return f"http://{host}:{port}{endpoint}"
 
 
 @dataclass(frozen=True)
@@ -31,7 +54,9 @@ class QuartWebConfig:
 
     @classmethod
     def from_env(cls) -> "QuartWebConfig":
-        mcp_server_url = os.getenv("MCP_SERVER_URL", "http://127.0.0.1:5001/sse").strip()
+        load_dotenv()
+
+        mcp_server_url = _resolve_mcp_server_url()
         session_secret = os.getenv("SESSION_SECRET", "").strip()
         if not session_secret:
             raise MCPConfigurationError("SESSION_SECRET must be set for Quart session cookies")

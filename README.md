@@ -123,7 +123,7 @@ python -m alembic -c database/alembic.ini upgrade head
 Use `http` transport for network/web-tier communication (JSON-RPC + SSE endpoints):
 
 ```powershell
-python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001
+  http --host 127.0.0.1 --port 5001
 ```
 
 ### 6) Optional: start MCP in `stdio` mode (inspector/local tool use)

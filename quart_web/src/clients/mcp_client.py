@@ -7,9 +7,11 @@ import asyncio
 import json
 from contextlib import AsyncExitStack
 from typing import Any
+from urllib.parse import urlparse
 
 from mcp import ClientSession
 from mcp.client.sse import sse_client
+from mcp.client.streamable_http import streamable_http_client
 
 from quart_web.src.clients.errors import (
     MCPConfigurationError,
@@ -26,10 +28,18 @@ class MCPClientWrapper:
         if not url:
             raise MCPConfigurationError("MCP_SERVER_URL is required")
         self._url = url
+        self._transport = self._detect_transport(url)
         self._timeout_seconds = float(timeout_seconds)
         self._session: ClientSession | None = None
         self._stack: AsyncExitStack | None = None
         self._connect_lock = asyncio.Lock()
+
+    @staticmethod
+    def _detect_transport(url: str) -> str:
+        path = urlparse(url).path.rstrip("/").lower()
+        if path.endswith("/sse"):
+            return "sse"
+        return "streamable-http"
 
     @property
     def connected(self) -> bool:
@@ -46,7 +56,12 @@ class MCPClientWrapper:
 
             stack = AsyncExitStack()
             try:
-                read, write = await stack.enter_async_context(sse_client(url=self._url))
+                if self._transport == "sse":
+                    read, write = await stack.enter_async_context(sse_client(url=self._url))
+                else:
+                    read, write, _get_session_id = await stack.enter_async_context(
+                        streamable_http_client(self._url)
+                    )
                 session = await stack.enter_async_context(ClientSession(read, write))
                 await asyncio.wait_for(session.initialize(), timeout=self._timeout_seconds)
             except asyncio.TimeoutError as exc:
@@ -56,7 +71,9 @@ class MCPClientWrapper:
                 ) from exc
             except Exception as exc:
                 await stack.aclose()
-                raise MCPConnectionError(f"Failed to connect to MCP SSE endpoint: {exc}") from exc
+                raise MCPConnectionError(
+                    f"Failed to connect to MCP {self._transport} endpoint: {exc}"
+                ) from exc
 
             self._stack = stack
             self._session = session

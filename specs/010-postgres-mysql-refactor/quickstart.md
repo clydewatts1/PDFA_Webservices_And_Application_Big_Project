@@ -48,6 +48,8 @@ Start MCP runtime in HTTP mode:
 python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001
 ```
 
+Run 
+
 Run health checks and core workflow operations. Expected outcome:
 - Database health reports success.
 - Core create/update flows preserve temporal behavior.
