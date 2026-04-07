@@ -230,7 +230,7 @@ Invoke-RestMethod `
   -Body $body | ConvertTo-Json -Depth 10
 ```
 
-## Speckit Milestons
+## Speckit Milestones
 
 The project was done using speckit and Specification Driven Development methodology.  The following milestones were completed in order:
 
