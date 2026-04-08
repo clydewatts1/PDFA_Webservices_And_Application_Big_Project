@@ -6,8 +6,8 @@ Canonical path mandated by FR-011.
 |---|---|---|---|---|
 | FR-001 | compliant | `docs/constitution/coverage-matrix.md` | docs-maintainer | Matrix maps all required documentation obligations. |
 | FR-002 | compliant | `README.md` | docs-maintainer | Canonical Windows setup/run/test flow defined; supplementary docs link back. |
-| FR-003 | compliant | `README.md`, `mcp_server/README.md`, `quart_web/README.md`, `flask_web/README.md`, `docs/README.md` | docs-maintainer | Transport labels and startup guidance normalized. |
-| FR-004 | compliant | `README.md`, `quart_web/README.md`, `mcp_server/README.md` | docs-maintainer | Environment variables and consumption points documented. |
+| FR-003 | compliant | `README.md`, `mcp_server/README.md`, `flask_web/README.md`, `docs/README.md` | docs-maintainer | Transport labels and startup guidance normalized around Flask and synchronous JSON-RPC. |
+| FR-004 | compliant | `README.md`, `flask_web/README.md`, `mcp_server/README.md` | docs-maintainer | Environment variables and active MCP consumption points documented. |
 | FR-005 | compliant | `README.md`, `docs/source_attribution.md`, `docs/prompts/prompt_log.md`, `docs/test_evidence.md` | docs-maintainer | Attribution and process evidence pointers are explicit. |
 | FR-006 | compliant | `README.md`, `docs/README.md` | docs-maintainer | README pointer structure includes runbook + evidence + matrix. |
 | FR-007 | compliant | `specs/008-constitution-docs/artifacts/remediation-log.md`, `docs/README.md` | docs-maintainer | Contradictions recorded and reconciled with authority order. |
@@ -25,3 +25,8 @@ Canonical path mandated by FR-011.
 
 - Primary owner: `docs-maintainer`
 - Review cadence: each feature closure and pre-hand-up validation sweep.
+
+## WSGI Migration Alignment
+
+- Feature `011-flask-wsgi-migration` updates the canonical runtime path to `python -m mcp_server.src.wsgi_app` plus `python -m flask_web.src.app`.
+- Legacy Quart and legacy Flask demo assets may remain in-repo, but they are not part of the default dependency or test path.

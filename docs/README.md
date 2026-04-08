@@ -14,15 +14,15 @@ constitution → feature spec/contracts → coverage matrix → README/evidence 
 ## Boundary Notes
 
 - Documentation supports all architectural tiers but does not implement runtime behavior.
-- Runtime architecture remains Database -> MCP Server -> Quart Web Server (with legacy Flask tier retained for backward compatibility).
+- Runtime architecture remains Database -> MCP Server -> Flask Web Server, with the Flask MCP wrapper and Flask web tier as the only canonical run path.
 
 ## Canonical Runbook Alignment
 
 - Canonical Windows run/test flow: `README.md`
-- MCP network transport command: `python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001`
-- Quart startup command: `python -m quart_web.src.app`
-- Legacy supplemental Flask startup command: `python -m flask_web.src.app`
-- Required env vars for web tier: `MCP_SERVER_URL`, `SESSION_SECRET`
+- MCP network transport command: `python -m mcp_server.src.wsgi_app`
+- Flask startup command: `python -m flask_web.src.app`
+- Legacy supplemental Quart startup command: `python -m quart_web.src.app` (manual only)
+- Required env vars for canonical web tier: `SESSION_SECRET`, `MCP_RPC_URL`, `MCP_TIMEOUT_SECONDS`
 
 ## Key Documents
 

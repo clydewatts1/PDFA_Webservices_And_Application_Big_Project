@@ -44,8 +44,8 @@ specify init .
 
 The project is governed by the constitution in .specify/memory/constitution.md.
 
-- Architecture is fixed to Database -> MCP Server -> Quart Web Server.
-- Quart must talk to MCP exclusively over HTTP using JSON-RPC and/or SSE.
+- Architecture is fixed to Database -> MCP Server -> Flask Web Server.
+- Flask must talk to MCP exclusively over synchronous HTTP POST using JSON-RPC.
 - SQLAlchemy is permitted only inside the MCP server layer.
 - Persisted domain tables must maintain symmetric current and `_Hist` schemas, with only
 	the current version in the primary table and prior versions tracked in `_Hist` by the MCP server.
@@ -67,7 +67,7 @@ Current supplementary README coverage:
 - `docs/README.md`
 - `mcp_server/README.md`
 - `flask_web/README.md`
-- `quart_web/README.md`
+- `quart_web/README.md` (legacy historical tier notes only)
 
 All external sources used during development, including AI prompts, architectural research,
 and Spec Kit usage, must be cited in project documentation so the development process is
@@ -99,7 +99,8 @@ Create `.env` at repository root:
 DB_URL=mysql+pymysql://user:password@127.0.0.1:3306/pdfa_workflow?charset=utf8mb4
 DEFAULT_ACTOR=local_dev
 MCP_CONFIG_PATH=WB-Workflow-Configuration.yaml
-MCP_SERVER_URL=http://127.0.0.1:5001/sse
+MCP_BASE_URL=http://127.0.0.1:5001
+MCP_SERVER_URL=http://127.0.0.1:5001/rpc
 SESSION_SECRET=replace-with-a-random-secret-value
 FLASK_HOST=127.0.0.1
 FLASK_PORT=5000
@@ -118,12 +119,12 @@ MCP workflow configuration file:
 python -m alembic -c database/alembic.ini upgrade head
 ```
 
-### 5) Start MCP runtime (network mode)
+### 5) Start MCP wrapper (canonical WSGI path)
 
-Use `http` transport for network/web-tier communication (JSON-RPC + SSE endpoints):
+Use the dedicated Flask WSGI wrapper for synchronous web-tier JSON-RPC POST communication:
 
 ```powershell
-  http --host 127.0.0.1 --port 5001
+python -m mcp_server.src.wsgi_app
 ```
 
 ### 6) Optional: start MCP in `stdio` mode (inspector/local tool use)
@@ -132,18 +133,18 @@ Use `http` transport for network/web-tier communication (JSON-RPC + SSE endpoint
 python -m mcp_server.src.server --transport stdio
 ```
 
-### 7) Start Quart web tier (primary web tier)
-
-```powershell
-python -m quart_web.src.app
-```
-
-Quart default URL: `http://127.0.0.1:5002`
-
-### 8) Optional: start Flask web tier (legacy/supplementary)
+### 7) Start Flask web tier (primary web tier)
 
 ```powershell
 python -m flask_web.src.app
+```
+
+Flask default URL: `http://127.0.0.1:5000`
+
+### 8) Optional: start Quart web tier (legacy/manual only)
+
+```powershell
+python -m quart_web.src.app
 ```
 
 ### 9) Run tests
@@ -154,7 +155,13 @@ MCP contract and integration sign-off on MySQL:
 pytest mcp_server/tests/contract mcp_server/tests/integration -v --tb=short
 ```
 
-Quart tests:
+Flask tests:
+
+```powershell
+pytest flask_web/tests/ -v --tb=short
+```
+
+Quart legacy tests (manual/non-canonical):
 
 ```powershell
 pytest quart_web/tests/ -v --tb=short
@@ -181,6 +188,7 @@ pytest -v --tb=short
 - MCP JSON-RPC endpoint now emits structured log events (`mcp.request.*`) including method, request id, and duration.
 - Flask MCP client emits structured completion events (`flask.mcp.call.completed`).
 - MCP JSON-RPC errors are preserved by Flask client as `MCPClientError(code, message, data)`.
+- Canonical Flask env vars: `SESSION_SECRET`, `MCP_RPC_URL`, `MCP_TIMEOUT_SECONDS`, `FLASK_HOST`, `FLASK_PORT`.
 - Flask app includes a centralized `MCPClientError` handler returning normalized JSON error payloads.
 
 ## Hand-up Evidence
@@ -196,7 +204,7 @@ pytest -v --tb=short
 
 ## Appdendix
 
-### Testing SSE
+### Testing MCP HTTP JSON-RPC
 
 __0. Run Server__
 
@@ -205,15 +213,10 @@ $env:DB_URL="mysql+pymysql://user:password@127.0.0.1:3306/pdfa_workflow?charset=
 $env:MCP_CONFIG_PATH="WB-Workflow-Configuration.yaml"
 $env:MCP_HOST="127.0.0.1"
 $env:MCP_PORT="5001"
-python -m mcp_server.src.server --transport sse --host 127.0.0.1 --port 5001
+python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001
 ```
 
-__1. Open SSE stream__
-
-```
-curl.exe -N http://127.0.0.1:5001/sse
-```
-]__2. Trigger RPC__
+__1. Trigger RPC__
 
 ```
 $body = @{
@@ -234,7 +237,7 @@ Invoke-RestMethod `
 
 The project was done using speckit and Specification Driven Development methodology.  The following milestones were completed in order:
 
-The driver behind breaking the project down into a number of milestones is break down the project into smaller managable logical milestones. It is easier for the llm to focus on a smaller logocal small sections. It allows for continuous review and feedback on the development process.  Example the initial requirement was to use DB -> MCP -> Flask but after Milestone 4 it was clear that Flask was not a good fit for the web tier and Quart was a better fit.  By breaking the project down into smaller milestones it allows for course correction and adjustments to be made as the project evolves. Another issue was that the project is supposed to be database agnostic via SQLAlchemy , early stages of the project were using SQLite . This made it easier to for the LLM to test and develop the tables , MCP server logic and web tier logic without having to worry about the complexities of MySQL. The LLM introduct Postgres but the project required MySQL.
+The driver behind breaking the project down into a number of milestones is to decompose the project into smaller, reviewable logical increments. That keeps the LLM focused on a bounded slice of work and allows continuous review and course correction. The initial requirement was DB -> MCP -> Flask. A later shift to Quart improved async experimentation, but the architecture has now been returned to Flask so the web tier remains fully compatible with PythonAnywhere's WSGI hosting constraints. Another issue was that the project is supposed to be database agnostic via SQLAlchemy; early stages used SQLite to simplify local table and MCP logic development before the project converged on the required MySQL runtime.
 
 
 
@@ -245,7 +248,7 @@ The following milestones were completed in order:
 - [Milestone 4: MCP stdio Transport Compatibility](specs/004-mcp-stdio-compat/)
 - [Milestone 5: Fast MCP Refactor](specs/005-milestone5-fast-mcp-refactor/)
 - [Milestone 6: Web Tier Integration](specs/006-milestone6-web-tier-integration/)
-- [Milestone 7: Quart Web Tier Setup](specs/007-milestone7-quart-web-tier-setup/)
+- [Milestone 7: Quart Web Tier Setup (legacy)](specs/007-milestone7-quart-web-tier-setup/)
 - [Milestone 8: Constitution Docs](specs/008-constitution-docs/)
 - [Milestone 9: Postgres to mySQL Migration](specs/09-milestone9-postgres-to-mysql-migration/)
   
@@ -260,8 +263,6 @@ The following milestones were completed in order:
 [Pymysql Documentation](https://pymysql.readthedocs.io/en/latest/) 
 
 [SQLAlchemy Documentation](https://docs.sqlalchemy.org/en/20/) 
-
-[Quart Documentation](https://quart.palletsprojects.com/en/latest/) 
 
 [Flask Documentation](https://flask.palletsprojects.com/en/latest/)
 

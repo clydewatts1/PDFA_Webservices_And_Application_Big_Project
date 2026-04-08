@@ -4,3 +4,6 @@ pytest-cov>=5.0,<6.0
 ruff>=0.6,<1.0
 black>=24.0,<25.0
 pytest-asyncio>=0.24,<1.0
+
+# Legacy Quart tooling remains available only for non-canonical transition checks.
+quart>=0.19,<1.0

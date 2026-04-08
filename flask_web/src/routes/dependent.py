@@ -1,7 +1,10 @@
-"""Temporary Flask routes for dependent entity create/list — T024.
+"""Legacy Flask demo routes for dependent entity create/list.
+
+This module predates the canonical WSGI migration and is retained only as a
+historical reference surface. It is not registered by the canonical Flask app.
 
 All five entity types share a unified blueprint that renders minimal HTML
-for manual testing.  Each entity is accessible at:
+for manual testing. Each entity is accessible at:
 
     GET  /entities/<entity>            — list active rows (filterable by WorkflowName)
     GET  /entities/<entity>/new        — create form
@@ -9,7 +12,7 @@ for manual testing.  Each entity is accessible at:
 
 Supported <entity> slugs: role, interaction, guard, interaction_component, unit_of_work.
 
-Environment variables:
+Legacy environment variables:
   MCP_BASE_URL  (default: http://localhost:5001)
   DEFAULT_ACTOR (default: flask_ui_user)
 """

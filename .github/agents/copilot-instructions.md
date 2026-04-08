@@ -13,14 +13,16 @@ Auto-generated from all feature plans. Last updated: 2026-03-13
 - SQLite (primary local verification) with PostgreSQL-capable equivalents (004-mcp-stdio-compat)
 - Python 3.13.x + `mcp` Python SDK (`FastMCP`), SQLAlchemy, Alembic, pytest, python-dotenv, PyYAML (non-tool config), Flask (web tier only) (005-fastmcp-refactor)
 - SQLite/PostgreSQL through SQLAlchemy in MCP tier (005-fastmcp-refactor)
-- Python 3.13 (from `.venv/Scripts/python.exe`) + Quart (async Flask), official Python MCP SDK (`mcp` package), Jinja2, Bootstrap 5 CSS (006-web-tier-integration)
-- N/A (all persistence delegated to MCP server tier via SSE) (006-web-tier-integration)
-- Markdown + PowerShell command examples, Python 3.13 runtime references for reproducibility checks + Spec Kit workflow artifacts, repository README set, constitution, pytest command surface, MCP/Quart documented runtime commands (008-constitution-docs)
+- Python 3.13 (from `.venv/Scripts/python.exe`) + Flask, official Python MCP SDK (`mcp` package), Jinja2, Bootstrap 5 CSS (006-web-tier-integration)
+- N/A (all persistence delegated to MCP server tier via synchronous HTTP POST JSON-RPC) (006-web-tier-integration)
+- Markdown + PowerShell command examples, Python 3.13 runtime references for reproducibility checks + Spec Kit workflow artifacts, repository README set, constitution, pytest command surface, MCP/Flask documented runtime commands (008-constitution-docs)
 - Filesystem markdown artifacts in repository (`docs/`, root `README.md`, `specs/008-constitution-docs/`, `docs/constitution/`) (008-constitution-docs)
 - Python 3.11+ + SQLAlchemy 2.0+, Alembic 1.13+, PyMySQL 1.1+ (new), FastMCP 1.x (009-postgres-to-mysql-refactor)
 - MySQL 8.x (production/integration), SQLite (automated tests — unchanged) (009-postgres-to-mysql-refactor)
 - Python 3.11+ + SQLAlchemy 2.x, Alembic 1.13+, FastMCP 1.x, PyMySQL 1.1+ (010-postgres-mysql-refactor)
 - MySQL 8.x (runtime + contract/integration validation), PostgreSQL (legacy pre-cutover retention only), SQLite (unit-only where already applicable) (010-postgres-mysql-refactor)
+- Python 3.13.12 + Flask 3.x, Flask-WTF, WTForms, requests, SQLAlchemy 2.x, Alembic 1.13+, python-dotenv, PyYAML, pytest, existing `mcp` package for non-canonical MCP metadata/runtime code (011-flask-wsgi-migration)
+- MySQL 8.x via SQLAlchemy in the MCP tier; no new persistence schema for this feature (011-flask-wsgi-migration)
 
 - [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (001-define-workflow-tables)
 
@@ -41,9 +43,9 @@ cd src; pytest; ruff check .
 [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]: Follow standard conventions
 
 ## Recent Changes
+- 011-flask-wsgi-migration: Added Python 3.13.12 + Flask 3.x, Flask-WTF, WTForms, requests, SQLAlchemy 2.x, Alembic 1.13+, python-dotenv, PyYAML, pytest, existing `mcp` package for non-canonical MCP metadata/runtime code
 - 010-postgres-mysql-refactor: Added Python 3.11+ + SQLAlchemy 2.x, Alembic 1.13+, FastMCP 1.x, PyMySQL 1.1+
 - 009-postgres-to-mysql-refactor: Added Python 3.11+ + SQLAlchemy 2.0+, Alembic 1.13+, PyMySQL 1.1+ (new), FastMCP 1.x
-- 008-constitution-docs: Added Markdown + PowerShell command examples, Python 3.13 runtime references for reproducibility checks + Spec Kit workflow artifacts, repository README set, constitution, pytest command surface, MCP/Quart documented runtime commands
 
 
 <!-- MANUAL ADDITIONS START -->
