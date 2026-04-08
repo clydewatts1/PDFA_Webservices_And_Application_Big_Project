@@ -64,14 +64,14 @@ class TestMigrationExecution:
             with mysql_test_engine.begin() as connection:
                 revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
                 table_names = {
-                    row[0]
+                    str(row[0]).lower()
                     for row in connection.execute(
                         text("SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()")
                     )
                 }
 
             assert revision == "0001_current_history_tables"
-            assert {"Workflow", "Workflow_Hist", "Instance", "Instance_Hist"}.issubset(table_names)
+            assert {"workflow", "workflow_hist", "instance", "instance_hist"}.issubset(table_names)
         finally:
             Base.metadata.drop_all(mysql_test_engine, checkfirst=True)
             with mysql_test_engine.begin() as connection:

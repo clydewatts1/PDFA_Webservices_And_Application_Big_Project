@@ -101,3 +101,13 @@ Traceability policy used for this feature:
 - Constitution and feature contracts are normative.
 - README and evidence documents are synchronized delivery surfaces.
 - Historical PostgreSQL references are retained only where they explain rollback governance or feature lineage.
+
+## Flask WSGI Migration Sources (Feature 011)
+
+- Specification source: `specs/011-flask-wsgi-migration/spec.md`
+- Implementation plan source: `specs/011-flask-wsgi-migration/plan.md`
+- Contract sources: `specs/011-flask-wsgi-migration/contracts/mcp-wsgi-jsonrpc.md`, `specs/011-flask-wsgi-migration/contracts/flask-web-route-parity.md`
+- Quickstart runbook source: `specs/011-flask-wsgi-migration/quickstart.md`
+- Task execution ledger: `specs/011-flask-wsgi-migration/tasks.md`
+- Framework docs reference: Flask documentation (`https://flask.palletsprojects.com/`)
+- Forms/CSRF reference: Flask-WTF documentation (`https://flask-wtf.readthedocs.io/`)

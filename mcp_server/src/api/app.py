@@ -14,6 +14,7 @@ from typing import Any, Callable
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request, stream_with_context
 from mcp.server.fastmcp import FastMCP
+from werkzeug.exceptions import BadRequest
 
 from mcp_server.src.api.errors import JsonRpcError
 from mcp_server.src.db.session import make_session_factory
@@ -66,12 +67,52 @@ def create_app() -> Flask:
             200,
         )
 
+    def _transport_error(*, status_code: int, reason: str, message: str) -> tuple[Any, int]:
+        """Build a transport-level error response outside the JSON-RPC envelope."""
+
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": status_code,
+                        "message": message,
+                        "data": {"reason": reason},
+                    }
+                }
+            ),
+            status_code,
+        )
+
     @app.post("/rpc")
     def rpc() -> tuple[Any, int]:
         """Execute one JSON-RPC request against registered handlers."""
 
         started_at = time.perf_counter()
-        payload = request.get_json(silent=True) or {}
+        if not request.is_json:
+            logger.warning(json.dumps({"event": "mcp.request.invalid_content_type"}))
+            return _transport_error(
+                status_code=400,
+                reason="invalid_content_type",
+                message="Request content type must be application/json",
+            )
+
+        try:
+            payload = request.get_json(silent=False)
+        except BadRequest:
+            logger.warning(json.dumps({"event": "mcp.request.invalid_json"}))
+            return _transport_error(
+                status_code=400,
+                reason="invalid_json",
+                message="Request body must contain valid JSON",
+            )
+
+        if not isinstance(payload, dict):
+            logger.warning(json.dumps({"event": "mcp.request.invalid_json_type"}))
+            return _error(
+                JsonRpcError(code=-32600, message="Invalid Request", data={"reason": "jsonrpc_object_required"}),
+                None,
+            )
+
         request_id = payload.get("id")
         method = payload.get("method")
         params = payload.get("params") or {}

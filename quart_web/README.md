@@ -1,7 +1,7 @@
-# quart_web — Async Quart Web Tier
+# quart_web — Legacy Async Quart Web Tier
 
-The `quart_web/` package is the **presentation tier** of the PDFA three-tier application.
-It uses [Quart](https://quart.palletsprojects.com/) (Flask-compatible async framework) and communicates exclusively with the MCP server via HTTP/SSE.
+The `quart_web/` package is a legacy presentation-tier experiment retained for reference.
+It is not the canonical deployment target after the constitution's return to Flask for WSGI-compatible hosting.
 
 This README is supplementary to the root canonical runbook in `README.md`.
 
@@ -10,11 +10,10 @@ This README is supplementary to the root canonical runbook in `README.md`.
 ## Architecture Position
 
 ```
-Database  →  MCP Server (port 5001/SSE)  →  Quart Web Tier (port 5002)
+Database  →  MCP Server  →  Flask Web Tier (canonical)
 ```
 
-No direct database access. All persistence is delegated to the MCP server via
-`MCP_SERVER_URL`.
+No direct database access. All persistence is delegated to the MCP server. For active setup and runtime guidance, use `flask_web/README.md` and the root `README.md`.
 
 ---
 
@@ -34,7 +33,7 @@ SESSION_SECRET=replace-with-a-random-secret-value
 
 ---
 
-## Running the Quart Tier
+## Legacy Runtime Notes
 
 ### Prerequisites
 
@@ -44,7 +43,7 @@ Install dependencies from the project root:
 pip install -r requirements.txt
 ```
 
-### Start the server
+### Legacy start command
 
 ```powershell
 python -m quart_web.src.app
@@ -58,7 +57,7 @@ $env:QUART_ENV = "development"
 quart run --port 5002
 ```
 
-The server listens on `http://127.0.0.1:5002` by default.
+This surface is non-canonical, depends on legacy async transport assumptions, and may drift from the constitution over time.
 
 ---
 
@@ -67,6 +66,8 @@ The server listens on `http://127.0.0.1:5002` by default.
 ```powershell
 pytest quart_web/tests/ -v --tb=short
 ```
+
+Run these only as explicit legacy checks. They are not part of the default repository test path.
 
 ## Route Runbook
 

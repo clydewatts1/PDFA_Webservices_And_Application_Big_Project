@@ -111,12 +111,12 @@
 
 ### Constitutional Constraints *(mandatory when applicable)*
 
-- Identify which layer or layers are affected and explain how Database -> MCP Server -> Quart
+- Identify which layer or layers are affected and explain how Database -> MCP Server -> Flask
   Web Server boundaries remain intact.
 - Confirm the feature was initiated through Spec Kit and that MCP (Logic), Web-Tier
   (Routes), and Page (UI) sections are present and complete.
-- Describe any MCP contract additions or changes, including whether the interaction is
-  JSON-RPC, SSE, or both.
+- Describe any MCP contract additions or changes, including the synchronous HTTP POST
+  JSON-RPC request/response behavior and how SSE/WebSocket transports remain excluded.
 - If the feature touches persistence, state how SQLAlchemy remains confined to the MCP server
   and how workflow schema integrity is preserved across Workflow, Role, Interaction, Guard,
   InteractionComponent, UnitOfWork, and Instance.

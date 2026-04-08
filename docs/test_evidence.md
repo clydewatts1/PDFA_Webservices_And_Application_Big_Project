@@ -118,6 +118,20 @@ Observed parity result:
 ### Phase 6 Closeout Evidence (Feature 004)
 
 - Task `T047` (Inspector-based parity smoke run): `PASS`
+
+## Flask WSGI Migration Evidence (Feature 011)
+
+- Date (UTC): 2026-04-08
+- Command: `.venv\Scripts\python.exe -m pytest mcp_server/tests/contract/test_wsgi_app_rpc.py flask_web/tests/unit flask_web/tests/integration -v --tb=short`
+- Result: `16 passed`
+- Scope: canonical MCP wrapper contract coverage plus Flask health/auth/workspace/workflow/role parity checks.
+
+### Broader Regression Note
+
+- Command: `.venv\Scripts\python.exe -m pytest mcp_server/tests flask_web/tests -v --tb=short`
+- Result: `142 passed, 1 warning`
+- Warning: Alembic emitted a `path_separator` deprecation warning from the installed package configuration parser.
+- Follow-up: optional cleanup only; it does not affect pass/fail for feature 011.
 	- Evidence source: transport parity smoke block above (Inspector stdio + HTTP JSON-RPC health parity)
 	- Outcome: equivalent `status`/`status_message` observed for stdio and HTTP
 - Task `T048` (Timed first-time reviewer dry-run): `PASS`

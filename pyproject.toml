@@ -14,8 +14,8 @@ ignore = []
 pythonpath = ["."]
 testpaths = [
   "mcp_server/tests",
-  "flask_web/tests",
-  "quart_web/tests"
+  "flask_web/tests"
 ]
+# Keep asyncio support enabled while Quart remains as a legacy transition surface.
 asyncio_mode = "auto"
 addopts = "-q"
