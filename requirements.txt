@@ -7,9 +7,9 @@ requests>=2.31,<3.0
 PyYAML>=6.0,<7.0
 mcp>=1.0,<2.0
 
-# Quart web tier (async presentation layer — 006-web-tier-integration)
-quart>=0.19,<1.0
+# Canonical Flask web tier
 flask-wtf>=1.2,<2.0
 wtforms>=3.1,<4.0
+
 PyMySQL>=1.1,<2.0
 

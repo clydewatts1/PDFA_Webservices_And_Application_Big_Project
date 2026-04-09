@@ -16,10 +16,16 @@ This directory contains the MCP JSON-RPC service, SQLAlchemy-backed persistence 
 
 ## Startup Commands
 
-- Canonical network mode (for Quart/web-tier integration):
-	- `python -m mcp_server.src.server --transport http --host 127.0.0.1 --port 5001`
+- Canonical network mode (for Flask/web-tier integration):
+	- `python -m mcp_server.src.wsgi_app`
 - Optional inspector/local mode:
 	- `python -m mcp_server.src.server --transport stdio`
+
+Canonical wrapper environment variables:
+
+- `MCP_CONFIG_PATH`
+- `MCP_WRAPPER_HOST`
+- `MCP_WRAPPER_PORT`
 
 Root canonical runbook remains in `README.md`.
 

@@ -31,9 +31,9 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- Confirm the design preserves strict Database -> MCP Server -> Quart Web Server layering.
-- Confirm Quart-to-MCP interactions use HTTP contracts only (JSON-RPC and/or SSE), with no
-  direct database or in-process shortcut.
+- Confirm the design preserves strict Database -> MCP Server -> Flask Web Server layering.
+- Confirm Flask-to-MCP interactions use synchronous HTTP POST JSON-RPC contracts only, with
+  no SSE, WebSockets, direct database access, or in-process shortcut.
 - Confirm SQLAlchemy usage is confined to the MCP server tier.
 - Confirm the source `spec.md` was initiated via Spec Kit and is explicitly partitioned
   into MCP (Logic), Web-Tier (Routes), and Page (UI) sections before design proceeds.
@@ -92,7 +92,7 @@ mcp_server/
 │   └── services/
 └── tests/
 
-quart_web/
+flask_web/
 ├── src/
 │   ├── routes/
 │   ├── templates/

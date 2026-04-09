@@ -1,4 +1,8 @@
-"""Temporary Flask routes for instance create/list/state updates."""
+"""Legacy Flask demo routes for instance create/list/state updates.
+
+This module predates the canonical WSGI migration and is retained only as a
+historical reference surface. It is not registered by the canonical Flask app.
+"""
 
 from __future__ import annotations
 
