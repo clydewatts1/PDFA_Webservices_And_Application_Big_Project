@@ -1,1 +1,0 @@
-/spekit.plan  build  temporary application which will have a library which will create all the object. the plan should include testing the creation of the objects. 
