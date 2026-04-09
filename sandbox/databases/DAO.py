@@ -189,7 +189,7 @@ class MySQLDatabase:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             cursor.execute(f"SHOW CREATE TABLE {table_name}")
             ddl = cursor.fetchone()
             logging.info(f"[*] DDL retrieved successfully for table '{table_name}'.")
@@ -270,7 +270,7 @@ class MySQLDatabase:
                 error_message (str): Error message if workflow insertion fails, None otherwise.
                 last_inserted_id (int): ID of the last inserted workflow if insertion is successful, None otherwise.
         """
-        last_inserted_id
+        last_inserted_id = None
         connection_code, connection_error, _ = self.ensure_connection()
         if not connection_code:
             return -1, connection_error, None
@@ -412,7 +412,7 @@ class MySQLDatabase:
             return -1, str(err), []
         finally:
             cursor.close()
-        return 0, None, None
+        return 0, None, workflows
 
     def delete_all_from_workflow_table(self) -> tuple[int, str, None]:
         """Deletes all workflows from the workflow table.
@@ -454,7 +454,7 @@ class MySQLDatabase:
                 # Foreign key relationship with workflows table
             "FOREIGN KEY (workspace_id) REFERENCES workflows(workflow_id) ON UPDATE CASCADE ON DELETE CASCADE": ""
         }
-        return self.create_table(self.dbname, "roles", columns)
+        return self.create_table("roles", columns)
     
     def show_role_table_ddl(self, filename:str) -> tuple[int, str, list]:
         """Retrieves the DDL (Data Definition Language) for the role table.
@@ -466,7 +466,7 @@ class MySQLDatabase:
                 error_message (str): Error message if DDL retrieval fails, None otherwise.
                 ddl (list): DDL of the role table if retrieval is successful, empty list otherwise.
         """        
-        return self.show_table_ddl(self.dbname, "roles", filename)
+        return self.show_table_ddl("roles", filename)
 
     def drop_role_table(self) -> tuple[int, str, None]:
         """Drops the role table from the specified database if it exists.
@@ -707,7 +707,7 @@ class MySQLDatabase:
                 # Foreign key relationship with workflows table
             "FOREIGN KEY (workspace_id) REFERENCES workflows(workflow_id) ON UPDATE CASCADE ON DELETE CASCADE": ""
         }
-        return self.create_table(self.dbname, "guards", columns)    
+        return self.create_table("guards", columns)    
 
     def show_guard_table_ddl(self, filename:str) -> tuple[int, str, list]:
         """Retrieves the DDL (Data Definition Language) for the guard table.
@@ -718,7 +718,7 @@ class MySQLDatabase:
                 error_message (str): Error message if DDL retrieval fails, None otherwise.
                 ddl (list): DDL of the guard table if retrieval is successful, empty list otherwise.
         """        
-        return self.show_table_ddl(self.dbname, "guards", filename)
+        return self.show_table_ddl("guards", filename)
 
     def drop_guard_table(self) -> tuple[int, str, None]:
         """Drops the guard table from the specified database if it exists.
@@ -735,7 +735,7 @@ class MySQLDatabase:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             cursor.execute("DROP TABLE IF EXISTS guards")
             logging.info("[*] Table 'guards' dropped successfully.")
         except Errors.Error as err:
@@ -921,7 +921,7 @@ class MySQLDatabase:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             cursor.execute("DELETE FROM guards")
             self.connection.commit()
             logging.info("[*] All rows deleted successfully from table 'guards'.")
@@ -945,7 +945,7 @@ class MySQLDatabase:
                 # Foreign key relationship with guards and roles tables
             "FOREIGN KEY (workflow_id) REFERENCES workflows(workflow_id) ON UPDATE CASCADE ON DELETE CASCADE": ""
         }
-        return self.create_table(self.dbname, "interaction_components", columns)
+        return self.create_table("interaction_components", columns)
 
     def show_interaction_table_ddl(self, filename:str) -> tuple[int, str, list]:
         """Retrieves the DDL (Data Definition Language) for the interaction table.
@@ -956,7 +956,7 @@ class MySQLDatabase:
                 error_message (str): Error message if DDL retrieval fails, None otherwise.
                 ddl (list): DDL of the interaction table if retrieval is successful, empty list otherwise.
         """        
-        return self.show_table_ddl(self.dbname, "interaction_components", filename)
+        return self.show_table_ddl("interaction_components", filename)
 
     def drop_interaction_table(self) -> tuple[int, str, None]:
         """Drops the interaction_components table from the specified database if it exists.
@@ -1000,7 +1000,7 @@ class MySQLDatabase:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             insert_sql = "INSERT INTO interaction_components (interaction_id, workflow_id, interaction_name, created_by) VALUES (%s, %s, %s, %s)"
             values = (interaction_id, workflow_id, interaction_name, created_by)
             logging.info(f"[*] Executing SQL statement: {insert_sql} with values {values}")
@@ -1032,7 +1032,7 @@ class MySQLDatabase:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             update_sql = "UPDATE interaction_components SET workflow_id=%s, interaction_name=%s, updated_by=%s WHERE interaction_id=%s"
             values = (workflow_id, interaction_name, updated_by, interaction_id)
             logging.info(f"[*] Executing SQL statement: {update_sql} with values {values}")
@@ -1091,7 +1091,7 @@ class MySQLDatabase:
             return -1, connection_error, []
         cursor = self.connection.cursor(dictionary=True)
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             select_sql = "SELECT * FROM interaction_components WHERE interaction_id=%s"
             values = (interaction_id,)
             logging.info(f"[*] Executing SQL statement: {select_sql} with values {values}")
@@ -1125,7 +1125,7 @@ class MySQLDatabase:
             return -1, connection_error, []
         cursor = self.connection.cursor(dictionary=True)
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             select_sql = f"SELECT * FROM interaction_components"
             logging.info(f"[*] Executing SQL statement: {select_sql}")
             cursor.execute(select_sql)
@@ -1197,7 +1197,7 @@ class MySQLDatabase:
             "FOREIGN KEY (role_id) REFERENCES roles(role_id) ON UPDATE CASCADE ON   DELETE SET NULL": ""
 
         }
-        return self.create_table(self.dbname, "interaction_component", columns)
+        return self.create_table("interaction_component", columns)
 
     def show_interaction_component_table_ddl(self, filename:str) -> tuple[int, str, list]:
         """Retrieves the DDL (Data Definition Language) for the interaction component table.
@@ -1208,7 +1208,7 @@ class MySQLDatabase:
                 error_message (str): Error message if DDL retrieval fails, None otherwise.
                 ddl (list): DDL of the interaction component table if retrieval is successful, empty list otherwise.
         """        
-        return self.show_table_ddl(self.dbname, "interaction_component", filename)
+        return self.show_table_ddl("interaction_component", filename)
 
     def drop_interaction_component_table(self) -> tuple[int, str, None]:
         """Drops the interaction_component table from the specified database if it exists.
@@ -1259,7 +1259,7 @@ class MySQLDatabase:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             insert_sql = f"INSERT INTO interaction_component (interaction_component_name, interaction_component_description, interaction_component_type, interaction_component_subtype, interaction_id, guard_id, role_id, direction, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
             values = (interaction_component_name, interaction_component_description, interaction_component_type, interaction_component_subtype, interaction_id, guard_id, role_id, direction, created_by)
             logging.info(f"[*] Executing SQL statement: {insert_sql} with values {values}")
@@ -1356,7 +1356,7 @@ class MySQLDatabase:
             return -1, connection_error, []
         cursor = self.connection.cursor(dictionary=True)
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             select_sql = f"SELECT * FROM interaction_component WHERE interaction_component_id=%s"
             values = (interaction_component_id,)
             logging.info(f"[*] Executing SQL statement: {select_sql} with values {values}")
@@ -1390,7 +1390,7 @@ class MySQLDatabase:
             return -1, connection_error, []
         cursor = self.connection.cursor(dictionary=True)
         try:
-            cursor.execute(f"USE {db_name}")
+            cursor.execute(f"USE {self.dbname}")
             select_sql = f"SELECT * FROM interaction_component"
             logging.info(f"[*] Executing SQL statement: {select_sql}")
             cursor.execute(select_sql)
@@ -1446,38 +1446,38 @@ if __name__ == "__main__":
     logging.info("[*] Testing MySQL database connection and operations...")
     db.connect()
     logging.info("[*] Creating database and table...")
-    return_code, return_msg, _ = db.create_database("test_db")
+    return_code, return_msg, _ = db.create_database()
     logging.info("[*] Creating table 'users' in database 'test_db'...")
     if return_code:
         logging.info("[*] Table 'users' created successfully.")
     else:
         logging.error(f"[!] Error creating table 'users': {return_msg}")
 
-    create_table_code, create_table_msg, _ =db.create_workflow_table("test_db")
+    create_table_code, create_table_msg, _ =db.create_workflow_table()
     if create_table_code:
         logging.info("[*] Workflow table created successfully.")
     else:        
         logging.error(f"[!] Error creating workflow table: {create_table_msg}")
     
-    create_table_code, create_table_msg, _ =db.create_role_table("test_db")
+    create_table_code, create_table_msg, _ =db.create_role_table()
     if create_table_code:
         logging.info("[*] Role table created successfully.")
     else:
         logging.error(f"[!] Error creating role table: {create_table_msg}")
 
-    create_table_code, create_table_msg, _ =db.create_guard_table("test_db")
+    create_table_code, create_table_msg, _ =db.create_guard_table()
     if create_table_code:
         logging.info("[*] Guard table created successfully.")
     else:
         logging.error(f"[!] Error creating guard table: {create_table_msg}")
 
-    create_table_code, create_table_msg, _ =db.create_interaction_table("test_db")
+    create_table_code, create_table_msg, _ =db.create_interaction_table()
     if create_table_code:
         logging.info("[*] Interaction table created successfully.")
     else:
         logging.error(f"[!] Error creating interaction table: {create_table_msg}")
 
-    create_table_code, create_table_msg, _ =db.create_interaction_component_table("test_db")
+    create_table_code, create_table_msg, _ =db.create_interaction_component_table()
     if create_table_code:
         logging.info("[*] Interaction component table created successfully.")
     else:

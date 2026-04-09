@@ -10,17 +10,17 @@ import argparse
 
 from sqlalchemy import Select
 
-import sandbox.databases.test_mysql as db
+import sandbox.databases.DAO as db
 # npx @modelcontextprotocol/inspector .venv/Scripts/python.exe -m sandbox.databases.test_mcp                                                                                                                      
 # stre
 # ensure the project root is on sys.path so test_mysql can be imported directly
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-import test_mysql
+import sandbox.databases.DAO as DAO
 
 from mcp.server.fastmcp import FastMCP
 
 logging.basicConfig(level=logging.DEBUG)
-db = test_mysql.MySQLDatabase('localhost', 'root', 'root')
+db = DAO.MySQLDatabase('localhost', 'root', 'root')
 retcode, retmsg, _ = db.connect()
 if retcode != 0:
     logging.error(f"Failed to connect to the database: {retmsg}")
