@@ -31,17 +31,51 @@
 # All foreign key relationships will be implemented in the create_table function for the respective tables 
 #     with cascading updates and deletes where applicable.
 #-------------------------------------------------------------------------------------------------
-import mysql.connector
-import mysql.connector.errors as Errors
-import logging
-
 import config
+import logging
+from typing import Any
 
-from sqlalchemy import table
+import pymysql
+
+try:
+    import mysql.connector as mysql_connector
+    import mysql.connector.errors as mysql_errors
+except ImportError:
+    mysql_connector = None
+    mysql_errors = None
+
+
+class Errors:
+    Error = tuple(
+        error_type
+        for error_type in (
+            getattr(mysql_errors, "Error", None),
+            pymysql.MySQLError,
+        )
+        if error_type is not None
+    )
+
+
+class _PyMySQLConnectionAdapter:
+    def __init__(self, connection: pymysql.connections.Connection):
+        self._connection = connection
+
+    def cursor(self, dictionary: bool = False):
+        if dictionary:
+            return self._connection.cursor(pymysql.cursors.DictCursor)
+        return self._connection.cursor()
+
+    def ping(self, reconnect: bool = True, attempts: int = 1, delay: int = 0):
+        return self._connection.ping(reconnect=reconnect)
+
+    def __getattr__(self, name: str):
+        return getattr(self._connection, name)
+
+#from sqlalchemy import table
 
 # All functions should return return_code, error_message, data (if applicable)
 class MySQLDatabase:
-    def __init__(self, host=None, user=None, password=None, dbname='test_db', port=None, auth_plugin=None):
+    def __init__(self, host=None, user=None, password=None, dbname=None, port=None, auth_plugin=None):
         """Initializes the MySQLDatabase instance with connection parameters.
         Args:
             host (str): Hostname or IP address of the MySQL server.
@@ -58,7 +92,7 @@ class MySQLDatabase:
         self.auth_plugin = auth_plugin if auth_plugin is not None else runtime_config.DB_AUTH_PLUGIN
         self.connection = None
 
-    def connect(self)-> tuple[int, str, mysql.connector.connection.MySQLConnection]:
+    def connect(self)-> tuple[int, str, Any]:
         """Establishes a connection to the MySQL database.
         Returns:
             tuple: (return_code, error_message, connection)
@@ -66,19 +100,43 @@ class MySQLDatabase:
                 error_message (str): Error message if connection fails, None otherwise.
                 connection (mysql.connector.connection.MySQLConnection): MySQL connection object if successful, None otherwise.
         """
+        connection_kwargs = {
+            "host": self.host,
+            "port": self.port,
+            "user": self.user,
+            "password": self.password,
+            "database": self.dbname,
+        }
+        if self.auth_plugin:
+            connection_kwargs["auth_plugin"] = self.auth_plugin
+
+        if mysql_connector is not None:
+            try:
+                self.connection = mysql_connector.connect(**connection_kwargs)
+                logging.info("[*] Connected to MySQL database via mysql-connector-python.")
+                return 0, None, self.connection
+            except Errors.Error as err:
+                error_message = str(err)
+                if "Authentication plugin" not in error_message:
+                    logging.error(f"[!] Error connecting to MySQL: {err}")
+                    self.connection = None
+                    return -1, error_message, None
+                logging.warning(
+                    "[!] mysql-connector-python could not handle the authentication plugin; "
+                    "retrying with PyMySQL."
+                )
+
         try:
-            connection_kwargs = {
+            pymysql_kwargs = {
                 "host": self.host,
                 "port": self.port,
                 "user": self.user,
                 "password": self.password,
                 "database": self.dbname,
+                "autocommit": False,
             }
-            if self.auth_plugin:
-                connection_kwargs["auth_plugin"] = self.auth_plugin
-
-            self.connection = mysql.connector.connect(**connection_kwargs)
-            logging.info("[*] Connected to MySQL database.")
+            self.connection = _PyMySQLConnectionAdapter(pymysql.connect(**pymysql_kwargs))
+            logging.info("[*] Connected to MySQL database via PyMySQL.")
         except Errors.Error as err:
             logging.error(f"[!] Error connecting to MySQL: {err}")
             self.connection = None
@@ -90,7 +148,7 @@ class MySQLDatabase:
         if not self.connection:
             logging.info("[*] No connection to MySQL. Attempting to connect...")
             connect_code, connect_error, _ = self.connect()
-            if not connect_code:
+            if connect_code != 0:
                 return -1, f"Connection failed: {connect_error}", None
 
         try:
@@ -98,7 +156,7 @@ class MySQLDatabase:
         except Errors.Error as err:
             logging.warning(f"[!] Ping failed, reconnecting to MySQL: {err}")
             reconnect_code, reconnect_error, _ = self.connect()
-            if not reconnect_code:
+            if reconnect_code != 0:
                 return -1, f"Reconnection failed: {reconnect_error}", None
 
             try:
@@ -117,7 +175,7 @@ class MySQLDatabase:
                 None: Always None.
         """
         ensure_code, ensure_error, _ = self.ensure_connection()
-        if not ensure_code:
+        if ensure_code != 0:
             logging.error(f"[!] Error pinging MySQL server: {ensure_error}")
             return -1, ensure_error, None
 
@@ -133,7 +191,7 @@ class MySQLDatabase:
                 None: Always None.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             logging.error(f"[!] Cannot create database because connection failed: {connection_error}")
             return -1, f"Cannot create database because connection failed: {connection_error}", None
 
@@ -162,7 +220,7 @@ class MySQLDatabase:
                 None: Always None.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -193,7 +251,7 @@ class MySQLDatabase:
                 ddl (list): DDL of the table if retrieval is successful, empty list otherwise.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -250,7 +308,7 @@ class MySQLDatabase:
                 None: Always None.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -280,7 +338,7 @@ class MySQLDatabase:
         """
         last_inserted_id = None
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -316,7 +374,7 @@ class MySQLDatabase:
                 updated_workflow_id (int): ID of the updated workflow if update is successful, None otherwise.
         """        
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -345,7 +403,7 @@ class MySQLDatabase:
                 None: Always None.
         """        
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -374,8 +432,8 @@ class MySQLDatabase:
                 workflow (dict): Workflow data if selection is successful, empty dict otherwise.
         """        
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
-            return -1, connection_error, []
+        if connection_code != 0:
+            return -1, connection_error, {}
         cursor = self.connection.cursor(dictionary=True)
         try:
             cursor.execute(f"USE {self.dbname}")
@@ -405,7 +463,7 @@ class MySQLDatabase:
                 workflows (list): List of workflows if selection is successful, empty list otherwise.
         """        
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, []
         cursor = self.connection.cursor(dictionary=True)
         try:
@@ -431,7 +489,7 @@ class MySQLDatabase:
                 None: Always None.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -485,7 +543,7 @@ class MySQLDatabase:
                 None: Always None.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -515,7 +573,7 @@ class MySQLDatabase:
                 inserted_role_id (int): ID of the last inserted role if insertion is successful, None otherwise.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -551,7 +609,7 @@ class MySQLDatabase:
                 updated_role_id (int): ID of the updated role if update is successful, None otherwise.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -580,7 +638,7 @@ class MySQLDatabase:
                 None: Always None.
         """        
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
+        if connection_code != 0:
             return -1, connection_error, None
         cursor = self.connection.cursor()
         try:
@@ -609,8 +667,8 @@ class MySQLDatabase:
                 role_data (dict): Data of the selected role if selection is successful, empty dict otherwise.
         """
         connection_code, connection_error, _ = self.ensure_connection()
-        if not connection_code:
-            return -1, connection_error, []
+        if connection_code != 0:
+            return -1, connection_error, {}
         cursor = self.connection.cursor(dictionary=True)
         try:
             cursor.execute(f"USE {self.dbname}")
@@ -1275,7 +1333,7 @@ class MySQLDatabase:
             self.connection.commit()
             logging.info(f"[*] Interaction component '{interaction_component_name}' inserted successfully into table 'interaction_component'.")
             return 0, None, None
-        except mysql.connector.Error as err:
+        except Errors.Error as err:
             logging.error(f"[!] Error inserting interaction component '{interaction_component_name}': {err}")
             return -1, str(err), None
         finally:
@@ -1313,7 +1371,7 @@ class MySQLDatabase:
             self.connection.commit()
             logging.info(f"[*] Interaction component with ID '{interaction_component_id}' updated successfully in table 'interaction_component'.")
             return 0, None, None
-        except mysql.connector.Error as err:
+        except Errors.Error as err:
             logging.error(f"[!] Error updating interaction component with ID '{interaction_component_id}': {err}")
             return -1, str(err), None
         finally:
@@ -1342,7 +1400,7 @@ class MySQLDatabase:
             self.connection.commit()
             logging.info(f"[*] Interaction component with ID '{interaction_component_id}' deleted successfully from table 'interaction_component'.")
             return 0, None, None
-        except mysql.connector.Error as err:
+        except Errors.Error as err:
             logging.error(f"[!] Error deleting interaction component with ID '{interaction_component_id}': {err}")
             return -1, str(err), None
         finally:
@@ -1376,7 +1434,7 @@ class MySQLDatabase:
             else:
                 logging.warning(f"[!] No interaction component found with ID '{interaction_component_id}' in table 'interaction_component'.")
                 return -1, "No interaction component found.", None
-        except mysql.connector.Error as err:
+        except Errors.Error as err:
             logging.error(f"[!] Error selecting interaction component with ID '{interaction_component_id}': {err}")
             return -1, str(err), None
         finally:
@@ -1409,7 +1467,7 @@ class MySQLDatabase:
             else:
                 logging.warning(f"[!] No interaction components found in table 'interaction_component'.")
                 return -1, "No interaction components found.", None
-        except mysql.connector.Error as err:
+        except Errors.Error as err:
             logging.error(f"[!] Error selecting interaction components: {err}")
             return -1, str(err), None
         finally:
@@ -1456,37 +1514,37 @@ if __name__ == "__main__":
     logging.info("[*] Creating database and table...")
     return_code, return_msg, _ = db.create_database()
     logging.info("[*] Creating table 'users' in database 'test_db'...")
-    if return_code:
+    if return_code == 0:
         logging.info("[*] Table 'users' created successfully.")
     else:
         logging.error(f"[!] Error creating table 'users': {return_msg}")
 
     create_table_code, create_table_msg, _ =db.create_workflow_table()
-    if create_table_code:
+    if create_table_code == 0:
         logging.info("[*] Workflow table created successfully.")
     else:        
         logging.error(f"[!] Error creating workflow table: {create_table_msg}")
     
     create_table_code, create_table_msg, _ =db.create_role_table()
-    if create_table_code:
+    if create_table_code == 0:
         logging.info("[*] Role table created successfully.")
     else:
         logging.error(f"[!] Error creating role table: {create_table_msg}")
 
     create_table_code, create_table_msg, _ =db.create_guard_table()
-    if create_table_code:
+    if create_table_code == 0:
         logging.info("[*] Guard table created successfully.")
     else:
         logging.error(f"[!] Error creating guard table: {create_table_msg}")
 
     create_table_code, create_table_msg, _ =db.create_interaction_table()
-    if create_table_code:
+    if create_table_code == 0:
         logging.info("[*] Interaction table created successfully.")
     else:
         logging.error(f"[!] Error creating interaction table: {create_table_msg}")
 
     create_table_code, create_table_msg, _ =db.create_interaction_component_table()
-    if create_table_code:
+    if create_table_code == 0:
         logging.info("[*] Interaction component table created successfully.")
     else:
         logging.error(f"[!] Error creating interaction component table: {create_table_msg}")

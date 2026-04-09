@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Workflow Manager</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .form-group { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Workflow Management</h1>
+
+    <div id="create-workflow">
+        <h3>Create New Workflow</h3>
+        <input type="text" id="name" placeholder="Name">
+        <input type="text" id="type" placeholder="Type">
+        <button onclick="addWorkflow()">Add Workflow</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Created By</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="workflow-table-body">
+            </tbody>
+    </table>
+
+    <script>
+        // --- AJAX FUNCTIONS ---
+
+        // 1. Fetch all workflows from Flask and show them in the table
+        function loadWorkflows() {
+            fetch('/api/workflows')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('workflow-table-body');
+                    tbody.innerHTML = ''; // Clear existing rows
+                    
+                    data.forEach(workflow => {
+                        const row = `<tr>
+                            <td>${workflow.workflow_id}</td>
+                            <td>${workflow.workflow_name}</td>
+                            <td>${workflow.workflow_type}</td>
+                            <td>${workflow.created_by}</td>
+                            <td><button onclick="deleteWorkflow(${workflow.workflow_id})">Delete</button></td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(error => console.error('Error fetching workflows:', error));
+        }
+
+        // 2. Send a POST request to add a new workflow
+        function addWorkflow() {
+            const payload = {
+                name: document.getElementById('name').value,
+                type: document.getElementById('type').value,
+                description: "Added via Web UI",
+                subtype: "Standard",
+                user: "AdminUser"
+            };
+
+            fetch('/api/workflows', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(() => {
+                loadWorkflows(); // Refresh table
+                document.getElementById('name').value = ''; // Clear input
+            });
+        }
+
+        // Load data automatically when the page opens
+        window.onload = loadWorkflows;
+    </script>
+</body>
+</html>
