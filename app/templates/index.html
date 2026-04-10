@@ -45,7 +45,7 @@
                 .then(data => {
                     const tbody = document.getElementById('workflow-table-body');
                     tbody.innerHTML = ''; // Clear existing rows
-                    
+
                     data.forEach(workflow => {
                         const row = `<tr>
                             <td>${workflow.workflow_id}</td>
@@ -65,9 +65,9 @@
             const payload = {
                 name: document.getElementById('name').value,
                 type: document.getElementById('type').value,
-                description: "Added via Web UI",
-                subtype: "Standard",
-                user: "AdminUser"
+                description: 'Added via Web UI',
+                subtype: 'Standard',
+                user: 'AdminUser'
             };
 
             fetch('/api/workflows', {
@@ -80,6 +80,18 @@
                 loadWorkflows(); // Refresh table
                 document.getElementById('name').value = ''; // Clear input
             });
+        }
+
+        // 3. Send a DELETE request to remove a workflow
+        function deleteWorkflow(workflowId) {
+            fetch(`/api/workflows/${workflowId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(() => {
+                loadWorkflows();
+            })
+            .catch(error => console.error('Error deleting workflow:', error));
         }
 
         // Load data automatically when the page opens

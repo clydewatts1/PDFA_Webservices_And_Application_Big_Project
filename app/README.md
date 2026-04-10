@@ -27,7 +27,7 @@ The intended flow is:
 
 ### `routes.py`
 
-This file defines the web routes using a Flask `Blueprint`. Route handlers access the active DAO through `current_app.db`, which keeps the web layer independent from backend-specific SQL details.
+This file defines the web routes using a Flask `Blueprint`. Route handlers access the active DAO through a small `get_db_provider()` helper, which reads `current_app.db` and returns the configured provider as a `BaseDAO`. That keeps the web layer tied to the DAO contract rather than to a specific backend implementation.
 
 At the moment the routes demonstrate reading workflows and inserting a workflow from form data.
 
@@ -68,6 +68,13 @@ By convention, `0` means success and a nonzero value means failure.
 ## Current Notes
 
 The package structure now centers on the `app/databases/` DAO modules. When updating application wiring, keep imports and backend selection logic aligned with that package layout so the factory, routes, and DAO layer all reference the same implementation paths.
+
+The current route pattern is:
+
+- define endpoints on a Blueprint in `routes.py`
+- resolve the active DAO from the Flask app context
+- call only methods defined on `BaseDAO`
+- handle the shared `(return_code, error_message, data)` response shape in the route layer
 
 ## Development Guidance
 

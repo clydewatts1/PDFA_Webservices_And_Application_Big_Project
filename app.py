@@ -1,8 +1,13 @@
+from pathlib import Path
+
 from flask import Flask, jsonify, request, render_template, abort
 from DAO import MySQLDatabase # Ensure this matches your .py file name
 import config
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=str(Path(__file__).resolve().parent / "app" / "templates"),
+)
 
 runtime_config = config.get_config()
 db = MySQLDatabase(
@@ -24,7 +29,7 @@ def database_error(err: str):
 
 @app.route('/')
 def index():
-    # This will look for templates/index.html
+    # This points at app/templates/index.html.
     return render_template('index.html')
 
 # --- API ROUTES (Workflows) ---

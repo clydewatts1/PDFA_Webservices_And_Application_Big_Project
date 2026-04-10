@@ -1,7 +1,12 @@
+from pathlib import Path
+
 from flask import Flask, jsonify, request, render_template, abort
 from DAO import MySQLDatabase # Ensure this matches your .py file name
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=str(Path(__file__).resolve().parents[2] / "app" / "templates"),
+)
 
 # Initialize your DAO with your credentials
 db = MySQLDatabase(host="localhost", user="root", password="root", dbname="test_db")
@@ -10,7 +15,7 @@ db = MySQLDatabase(host="localhost", user="root", password="root", dbname="test_
 
 @app.route('/')
 def index():
-    # This will look for templates/index.html
+    # This points at app/templates/index.html.
     return render_template('index.html')
 
 # --- API ROUTES (Workflows) ---
