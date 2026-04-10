@@ -36,7 +36,9 @@ def create_app():
         #    auth_plugin=getattr(config_obj, 'DB_AUTH_PLUGIN', None)
         #)
         # user sqllite for now to avoid auth plugin issues on PA
-        app.logger.warning("MySQL configuration is present but using SQLite for now due to auth plugin
+        app.logger.warning(
+            "MySQL configuration is present but using SQLite for now due to auth plugin issues."
+        )
         app.db = SQLiteDatabase(
             db_path=_sqlite_db_path(config_obj),
             dbname=config_obj.DB_NAME,
