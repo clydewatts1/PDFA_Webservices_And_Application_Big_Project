@@ -1,178 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow Manager</title>
-    <style>
-        body { font-family: sans-serif; margin: 40px; line-height: 1.6; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f4f4f4; }
-        .form-group { margin-bottom: 10px; }
-        #status-message { margin: 16px 0; min-height: 24px; font-weight: 600; padding: 10px; border-radius: 4px; }
-        .status-success { color: #1b5e20; background-color: #c8e6c9; }
-        .status-error { color: #b71c1c; background-color: #ffcdd2; }
-        .btn-delete { background-color: #d32f2f; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-        .btn-delete:hover { background-color: #b71c1c; }
-    </style>
-</head>
-<body>
-    <h1>Workflow Management</h1>
+{% extends "base.html" %}
 
-    <div id="create-workflow" style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
-        <h3>Create New Workflow</h3>
-        <div class="form-group">
-            <input type="text" id="name" placeholder="Workflow Name">
-            <input type="text" id="type" placeholder="Workflow Type">
-            <button type="button" id="add-workflow-button">Add Workflow</button>
+{% block title %}Workflow Manager{% endblock %}
+
+{% block content %}
+<section class="grid gap-8 xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+    <div class="rounded-3xl border border-white/70 bg-white/90 p-6 shadow-lg shadow-slate-300/30 backdrop-blur">
+        <div class="mb-6">
+            <p class="text-sm font-semibold uppercase tracking-[0.3em] text-sky-700">Create workflow</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Register a new workflow</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-600">Capture the workflow name and type, then submit it directly to the active DAO-backed API.</p>
         </div>
+
+        <form id="workflow-form" class="space-y-4" novalidate>
+            <div>
+                <label for="name" class="mb-2 block text-sm font-medium text-slate-700">Workflow name</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="Customer onboarding"
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                >
+            </div>
+
+            <div>
+                <label for="type" class="mb-2 block text-sm font-medium text-slate-700">Workflow type</label>
+                <input
+                    type="text"
+                    id="type"
+                    name="type"
+                    placeholder="Approval"
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                >
+            </div>
+
+            <button
+                type="submit"
+                id="add-workflow-button"
+                class="inline-flex w-full items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200"
+            >
+                Add workflow
+            </button>
+        </form>
     </div>
 
-    <div id="status-message"></div>
+    <div class="rounded-3xl border border-white/70 bg-white/90 p-6 shadow-lg shadow-slate-300/30 backdrop-blur">
+        <div class="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.3em] text-sky-700">Workflow registry</p>
+                <h2 class="mt-2 text-2xl font-semibold text-slate-900">Current workflow inventory</h2>
+            </div>
+            <p class="text-sm text-slate-500">Live data loaded from the Flask API.</p>
+        </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Created By</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="workflow-table-body">
-            <!-- Rows loaded via AJAX -->
-        </tbody>
-    </table>
+        <div class="overflow-hidden rounded-2xl border border-slate-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">ID</th>
+                            <th scope="col" class="px-4 py-3">Name</th>
+                            <th scope="col" class="px-4 py-3">Type</th>
+                            <th scope="col" class="px-4 py-3">Created by</th>
+                            <th scope="col" class="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workflow-table-body" class="divide-y divide-slate-100 bg-white">
+                        <tr id="workflow-empty-state">
+                            <td colspan="5" class="px-4 py-10 text-center text-sm text-slate-500">Loading workflows...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
 
-    <script>
-        // --- HELPERS ---
-        const workflowTableBody = document.getElementById('workflow-table-body');
-        const addWorkflowButton = document.getElementById('add-workflow-button');
-
-        function showStatus(message, isError = false) {
-            const status = document.getElementById('status-message');
-            status.textContent = message;
-            status.className = isError ? 'status-error' : 'status-success';
-            setTimeout(() => { status.textContent = ''; status.className = ''; }, 5000);
-        }
-
-        // --- AJAX FUNCTIONS ---
-
-        // 1. Fetch all workflows
-        function loadWorkflows() {
-            fetch('/api/workflows')
-                .then(response => {
-                    if (!response.ok) throw new Error('Failed to load workflows.');
-                    return response.json();
-                })
-                .then(data => {
-                    workflowTableBody.innerHTML = '';
-                    
-                    data.forEach(workflow => {
-                        const rowId = workflow.workflow_id ?? workflow.id;
-                        const row = `
-                            <tr data-workflow-id="${rowId}">
-                                <td>${rowId}</td>
-                                <td>${workflow.workflow_name || 'N/A'}</td>
-                                <td>${workflow.workflow_type || 'N/A'}</td>
-                                <td>${workflow.created_by || 'System'}</td>
-                                <td>
-                                    <button type="button" class="btn-delete delete-workflow-button" data-workflow-id="${rowId}">
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>`;
-                        workflowTableBody.insertAdjacentHTML('beforeend', row);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showStatus('Failed to load workflows.', true);
-                });
-        }
-
-        // 2. Add Workflow
-        function addWorkflow() {
-            const name = document.getElementById('name').value;
-            const type = document.getElementById('type').value;
-
-            if (!name || !type) {
-                showStatus('Please enter both name and type.', true);
-                return;
-            }
-
-            const payload = {
-                name: name,
-                type: type,
-                description: 'Added via Web UI',
-                subtype: 'Standard',
-                user: 'AdminUser'
-            };
-
-            fetch('/api/workflows', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(async response => {
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Failed to add.');
-                return result;
-            })
-            .then(() => {
-                loadWorkflows();
-                document.getElementById('name').value = '';
-                document.getElementById('type').value = '';
-                showStatus('Workflow added successfully.');
-            })
-            .catch(error => {
-                showStatus(error.message, true);
-            });
-        }
-
-        // 3. Delete Workflow
-        function deleteWorkflow(workflowId) {
-            if (!confirm(`Are you sure you want to delete workflow #${workflowId}?`)) return;
-
-            fetch(`/api/workflows/${workflowId}`, {
-                method: 'DELETE'
-            })
-            .then(async response => {
-                const data = await response.json();
-                if (!response.ok || data.status !== 'deleted') {
-                    throw new Error(data.error || 'Failed to delete.');
-                }
-                return data;
-            })
-            .then(() => {
-                const row = document.querySelector(`tr[data-workflow-id="${workflowId}"]`);
-                if (row) row.remove();
-                showStatus(`Workflow #${workflowId} deleted.`);
-            })
-            .catch(error => {
-                console.error('Delete error:', error);
-                showStatus(error.message, true);
-            });
-        }
-
-        addWorkflowButton.addEventListener('click', addWorkflow);
-
-        workflowTableBody.addEventListener('click', event => {
-            const deleteButton = event.target.closest('.delete-workflow-button');
-            if (!deleteButton) {
-                return;
-            }
-
-            const workflowId = Number(deleteButton.dataset.workflowId);
-            if (!Number.isNaN(workflowId)) {
-                deleteWorkflow(workflowId);
-            }
-        });
-
-        // Load data on page load
-        window.addEventListener('DOMContentLoaded', loadWorkflows);
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+{% endblock %}

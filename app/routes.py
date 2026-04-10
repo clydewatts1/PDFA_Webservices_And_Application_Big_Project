@@ -5,9 +5,7 @@
 # Refactor the Flask routes to use a Blueprint and access the database provider from the app context. Look at dao_base.py
 #------------------------------------------------------------------------------------------------
 
-from pathlib import Path
-
-from flask import Blueprint, abort, current_app, flash, jsonify, redirect, request, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from app.databases.dao_base import BaseDAO
 
@@ -64,11 +62,7 @@ def index():
     """Render the workflow management page."""
     log_route_info("index:start", path=request.path)
     log_route_info("index:success", path=request.path)
-    template_path = Path(current_app.root_path) / "templates" / "index.html"
-    return current_app.response_class(
-        template_path.read_text(encoding="utf-8"),
-        mimetype="text/html",
-    )
+    return render_template("index.html")
 
 @bp.route('/workflow/add', methods=['POST'])
 def add_workflow():

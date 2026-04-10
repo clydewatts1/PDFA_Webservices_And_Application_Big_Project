@@ -32,7 +32,17 @@ data: Query result (list/dict/id) or None.
 
 Constraint: Routes in app/routes.py must never execute SQL. Use current_app.db.[method]().
 
-📝 Logging & Debugging Standards
+## 🎨 Frontend & Template Standards
+
+Template Inheritance: Use a base.html skeleton for global styles, navbars, and shared JS libraries.
+
+Content Separation: Specific pages (like index.html) must use {% extends "base.html" %} and {% block content %}.
+
+JavaScript Separation: All complex AJAX/Fetch logic must reside in external files under static/js/ (e.g., main.js). Avoid inline <script> tags in templates unless they are passing server-side variables to JS.
+
+Styling: Prefer utility-first CSS (Tailwind) or a centralized CSS file in static/css/. Avoid inline styles.
+
+##  📝 Logging & Debugging Standards
 
 Framework: Use the standard Python logging module within DAOs and current_app.logger within routes.
 
