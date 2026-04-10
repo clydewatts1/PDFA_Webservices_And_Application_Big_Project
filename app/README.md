@@ -29,7 +29,13 @@ The intended flow is:
 
 This file defines the web routes using a Flask `Blueprint`. Route handlers access the active DAO through a small `get_db_provider()` helper, which reads `current_app.db` and returns the configured provider as a `BaseDAO`. That keeps the web layer tied to the DAO contract rather than to a specific backend implementation.
 
-At the moment the routes demonstrate reading workflows and inserting a workflow from form data.
+The Blueprint currently serves the workflow management page and exposes JSON CRUD endpoints for these entities:
+
+- workflows
+- roles
+- guards
+- interactions
+- interaction components
 
 ### `models.py`
 

@@ -1,6 +1,7 @@
 import logging
 import sqlite3
 from datetime import datetime
+from functools import wraps
 from typing import Any
 
 import config
@@ -8,11 +9,63 @@ import config
 from .dao_base import BaseDAO
 
 
+LOGGER = logging.getLogger(__name__)
+
+
+def _summarize_value(value: Any) -> str:
+	"""Return a compact string representation suitable for DAO log messages."""
+	if isinstance(value, str):
+		truncated = value if len(value) <= 40 else f"{value[:37]}..."
+		return repr(truncated)
+	if isinstance(value, (list, tuple, set, dict)):
+		return f"{type(value).__name__}(len={len(value)})"
+	return repr(value)
+
+
+def _format_call(args: tuple[Any, ...], kwargs: dict[str, Any]) -> str:
+	"""Format positional and keyword arguments for a compact DAO start log."""
+	parts = [_summarize_value(arg) for arg in args]
+	parts.extend(f"{key}={_summarize_value(value)}" for key, value in kwargs.items())
+	return ", ".join(parts) if parts else "no arguments"
+
+
+def _logged_dao_method(func):
+	"""Log DAO method start and failures while preserving the existing method behavior."""
+	@wraps(func)
+	def wrapper(self, *args, **kwargs):
+		method_name = f"{type(self).__name__}.{func.__name__}"
+		LOGGER.info("[DAO START] %s(%s)", method_name, _format_call(args, kwargs))
+		try:
+			result = func(self, *args, **kwargs)
+		except Exception as err:
+			LOGGER.error("[DAO ERROR] %s raised %s", method_name, err)
+			raise
+
+		if isinstance(result, tuple) and len(result) >= 2:
+			return_code, error_message = result[0], result[1]
+			if return_code == -1 and error_message:
+				LOGGER.error("[DAO ERROR] %s failed: %s", method_name, error_message)
+		return result
+
+	return wrapper
+
+
+def _instrument_dao_methods(cls):
+	"""Decorate concrete DAO methods so they consistently log start and error events."""
+	for name, value in list(cls.__dict__.items()):
+		if name == "__init__" or name.startswith("__"):
+			continue
+		if callable(value):
+			setattr(cls, name, _logged_dao_method(value))
+	return cls
+
+
 def _current_timestamp() -> str:
 	"""Return a UTC timestamp string formatted for persistence."""
 	return datetime.utcnow().isoformat(sep=" ", timespec="seconds")
 
 
+@_instrument_dao_methods
 class SQLiteDatabase(BaseDAO):
 	"""SQLite-backed DAO implementation that mirrors the BaseDAO contract."""
 

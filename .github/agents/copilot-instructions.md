@@ -1,75 +1,79 @@
-# Project Context: Flask + MySQL + SQLite
+Project Context: Flask + MySQL + SQLite (PDFA Webservices)
 
-## General Tech Stack
-- **Framework:** Flask
-- **Primary Database (Production):** MySQL (using `mysql-connector-python`)
-- **Secondary Database (Local/Testing):** SQLite
-- **ORM/Interface:** [Specify if using SQLAlchemy or raw SQL. Example: SQLAlchemy]
+🏗 General Architecture
 
-## Architecture Patterns
-- Follow a Factory Pattern for app initialization (`create_app()`).
-- Separate database schemas from routes using a `models.py` or a `database/` directory.
-- Use Environment Variables (`.env`) for database credentials.
+Framework: Flask (using the App Factory pattern in app/__init__.py).
 
-## Database Guidelines
-- **Switching Logic:** Always check for `FLASK_ENV`. Use SQLite for development/testing and MySQL for production.
-- **SQL Syntax:** When writing raw SQL, prioritize standard ANSI SQL to maintain compatibility between SQLite and MySQL where possible.
-- **Error Handling:** Use `mysql.connector.errors` for MySQL-specific exceptions and standard `sqlite3.Error` for SQLite.
+Entry Point: run.py for local development; WSGI configuration for PythonAnywhere.
 
-## Code Style & Preferences
-- Use Type Hinting for all function signatures.
-- Prefer `f-strings` for string formatting.
-- Implement Flask Blueprints to keep the codebase modular.
-- Always include basic docstrings for new routes explaining the expected JSON payload and response codes.
+Configuration: Managed via config.py and .env.
 
-## Database Architecture & DAO Pattern
-Pattern: This project uses a Provider Pattern with a Data Access Object (DAO) instead of Flask-SQLAlchemy.
+Environment Detection: The app detects PYTHONANYWHERE_DOMAIN to switch between Production (MySQL) and Development (SQLite).
 
-Location: All database logic is located in app/database/.
+📂 Database & DAO Pattern
 
-base_dao.py: Contains the abstract BaseDAO class defining the interface.
+Pattern: Custom Provider Pattern using Data Access Objects (DAO). Do not use SQLAlchemy models.
 
-mysql_dao.py: Implementation for Production/PythonAnywhere using mysql.connector or pymysql.
+Location: All database logic is strictly contained in app/databases/.
 
-sqlite_dao.py: Implementation for Local Development using sqlite3.
+dao_base.py: The abstract base class (BaseDAO) defining the interface.
 
-###🛠 DAO Implementation Rules
-No SQL in Routes: Routes must never execute SQL. They must call methods from the DAO instance attached to the Flask app (e.g., current_app.db.method_name()).
+dao_mysql.py: Implementation for MySQL (Production).
 
-Consistent Returns: Every DAO method must return a tuple: (return_code, error_message, data).
+dao_sqllite.py: Implementation for SQLite (Local).
+
+Return Contract: Every DAO method MUST return a tuple: (return_code, error_message, data).
 
 return_code: 0 for success, -1 for failure.
 
-error_message: None on success, a string description on failure.
+error_message: None on success, string on failure.
 
-data: The result (list, dict, or ID) or None.
+data: Query result (list/dict/id) or None.
 
-Inheritance: When adding new methods, add the signature to BaseDAO first, then implement it in both mysql_dao.py and sqlite_dao.py.
+Constraint: Routes in app/routes.py must never execute SQL. Use current_app.db.[method]().
 
-### ⚠️ SQL Syntax Specifics
-Placeholders: - Use %s for mysql_dao.py.
+📝 Logging & Debugging Standards
 
-Use ? for sqlite_dao.py.
+Framework: Use the standard Python logging module within DAOs and current_app.logger within routes.
 
-Primary Keys: - Use INT AUTO_INCREMENT for MySQL.
+Level Configuration: Default to logging.INFO. Use logging.DEBUG for SQL query execution details (excluding sensitive data).
 
-Use INTEGER PRIMARY KEY AUTOINCREMENT for SQLite.
+DAO Logging Implementation: * Every major operation (connect, insert, update, delete) must log an INFO message on start including relevant IDs (e.g., [*] [DAO START] SQLiteDatabase.insert_workflow: {name}).
 
-Connections: Always use the ensure_connection() or ping() logic provided in the DAO classes to handle timeouts, especially for PythonAnywhere.
+Failures must be logged as ERROR including the specific exception message and context (e.g., [!] [DAO ERROR] Failed to update role {id}: {error}).
 
-##📄 Documentation & README Standards
-Proactive Creation: If a new module or directory is created and lacks a README.md, immediately suggest a baseline README that explains the directory's purpose.
+Log the connection type used (e.g., "Connected via PyMySQL fallback").
 
-Continuous Updates: Whenever a new route is added to routes.py or a new method is added to the DAO classes, prompt the user to update the root README.md to reflect these changes.
+Route Logging Implementation: * Use current_app.logger.info() for request lifecycle events (e.g., [*] [ROUTE START] Accessed workflows list).
 
-Technical Stack Transparency: Every README must explicitly mention the dual-database setup (SQLite for local, MySQL for PythonAnywhere) and the custom DAO pattern.
+Capture "silent" failures: Use current_app.logger.error() when a DAO returns a -1 code, even if the app doesn't crash, capturing the error_message returned by the DAO.
 
-### README Template: Ensure READMEs include:
+Log incoming request parameters for critical actions (e.g., IDs for delete/update) to trace logical mismatches between the frontend and backend.
 
-Purpose: What this specific folder/project does.
+🧪 Testing Standards
 
-Setup: Any specific .env keys required.
+Framework: pytest and pytest-flask.
 
-Usage: Example of how to call the primary functions or routes.
+Location: All tests live in the tests/ directory.
 
-DAO Reference: A reminder that no raw SQL should be written outside the /database folder.
+Isolation: Use sqlite:///:memory: for tests to ensure a clean slate for every run.
+
+Requirement: When adding a new DAO method, a corresponding test case must be added to tests/test_workflows.py.
+
+📄 Documentation (README) Rules
+
+Automatic Sync: Keep the root README.md and app/README.md up to date.
+
+New Folders: If a new directory is created, suggest a README.md immediately.
+
+Logic Changes: If the DAO interface changes, update the "Usage" sections of the primary README.
+
+⚠️ Coding Preferences
+
+Placeholders: Use %s for MySQL queries and ? for SQLite queries.
+
+Auth Plugin: Ensure mysql_native_password is supported to avoid caching_sha2_password errors.
+
+Type Hinting: Use Python type hints for all function signatures and DAO methods.
+
+Pathing: Always use relative paths or Path from pathlib for cross-platform compatibility.

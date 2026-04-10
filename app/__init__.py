@@ -27,14 +27,21 @@ def create_app():
     # PythonAnywhere automatically sets 'PYTHONANYWHERE_DOMAIN'
     if os.getenv('PYTHONANYWHERE_DOMAIN'):
         app.logger.info("Environment: PythonAnywhere detected. Using MySQL.")
-        app.db = MySQLDatabase(
-            host=config_obj.DB_HOST,
-            user=config_obj.DB_USER,
-            password=config_obj.DB_PASSWORD,
+        #app.db = MySQLDatabase(
+        #    host=config_obj.DB_HOST,
+        #    user=config_obj.DB_USER,
+        #    password=config_obj.DB_PASSWORD,
+        #    dbname=config_obj.DB_NAME,
+        #    port=config_obj.DB_PORT,
+        #    auth_plugin=getattr(config_obj, 'DB_AUTH_PLUGIN', None)
+        #)
+        # user sqllite for now to avoid auth plugin issues on PA
+        app.logger.warning("MySQL configuration is present but using SQLite for now due to auth plugin
+        app.db = SQLiteDatabase(
+            db_path=_sqlite_db_path(config_obj),
             dbname=config_obj.DB_NAME,
-            port=config_obj.DB_PORT,
-            auth_plugin=getattr(config_obj, 'DB_AUTH_PLUGIN', None),
         )
+
     else:
         app.logger.info("Environment: Local Laptop detected. Using SQLite.")
         app.db = SQLiteDatabase(
@@ -50,8 +57,18 @@ def create_app():
         if code != 0:
             app.logger.error(f"Database connection failed: {err}")
         else:
-            # You can trigger table creation here
-            app.db.create_workflow_table()
+            schema_builders = (
+                app.db.create_workflow_table,
+                app.db.create_role_table,
+                app.db.create_guard_table,
+                app.db.create_interaction_table,
+                app.db.create_interaction_component_table,
+            )
+            for build_schema in schema_builders:
+                build_code, build_error, _ = build_schema()
+                if build_code != 0:
+                    app.logger.error(f"Database schema initialization failed: {build_error}")
+                    break
 
     # 4. Register Blueprints/Routes
     from . import routes

@@ -1,7 +1,9 @@
 # dot env file for environment variables
-python-dotenv
+python-dotenv>=1.0.0
 # mysql driver
 mysql-connector-python>=8.0.33
+pymysql>=1.1.0
+cryptography>=42.0.0
 # mysql fallback driver
 PyMySQL>=1.1.0
 # for password hashing
@@ -9,4 +11,7 @@ cryptography
 # sqllite driver
 pysqlite3
 # for web server
-Flask
+Flask>=3.0.0
+# Testing 
+pytest>=8.0.0
+pytest-flask>=1.3.0

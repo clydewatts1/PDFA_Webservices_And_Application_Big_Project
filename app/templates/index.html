@@ -1,25 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workflow Manager</title>
     <style>
-        body { font-family: sans-serif; margin: 40px; }
+        body { font-family: sans-serif; margin: 40px; line-height: 1.6; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
         th { background-color: #f4f4f4; }
         .form-group { margin-bottom: 10px; }
+        #status-message { margin: 16px 0; min-height: 24px; font-weight: 600; padding: 10px; border-radius: 4px; }
+        .status-success { color: #1b5e20; background-color: #c8e6c9; }
+        .status-error { color: #b71c1c; background-color: #ffcdd2; }
+        .btn-delete { background-color: #d32f2f; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-delete:hover { background-color: #b71c1c; }
     </style>
 </head>
 <body>
-
     <h1>Workflow Management</h1>
 
-    <div id="create-workflow">
+    <div id="create-workflow" style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
         <h3>Create New Workflow</h3>
-        <input type="text" id="name" placeholder="Name">
-        <input type="text" id="type" placeholder="Type">
-        <button onclick="addWorkflow()">Add Workflow</button>
+        <div class="form-group">
+            <input type="text" id="name" placeholder="Workflow Name">
+            <input type="text" id="type" placeholder="Workflow Type">
+            <button type="button" id="add-workflow-button">Add Workflow</button>
+        </div>
     </div>
+
+    <div id="status-message"></div>
 
     <table>
         <thead>
@@ -32,39 +42,70 @@
             </tr>
         </thead>
         <tbody id="workflow-table-body">
-            </tbody>
+            <!-- Rows loaded via AJAX -->
+        </tbody>
     </table>
 
     <script>
-        // --- AJAX FUNCTIONS ---
+        // --- HELPERS ---
+        const workflowTableBody = document.getElementById('workflow-table-body');
+        const addWorkflowButton = document.getElementById('add-workflow-button');
 
-        // 1. Fetch all workflows from Flask and show them in the table
-        function loadWorkflows() {
-            fetch('/api/workflows')
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById('workflow-table-body');
-                    tbody.innerHTML = ''; // Clear existing rows
-
-                    data.forEach(workflow => {
-                        const row = `<tr>
-                            <td>${workflow.workflow_id}</td>
-                            <td>${workflow.workflow_name}</td>
-                            <td>${workflow.workflow_type}</td>
-                            <td>${workflow.created_by}</td>
-                            <td><button onclick="deleteWorkflow(${workflow.workflow_id})">Delete</button></td>
-                        </tr>`;
-                        tbody.innerHTML += row;
-                    });
-                })
-                .catch(error => console.error('Error fetching workflows:', error));
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status-message');
+            status.textContent = message;
+            status.className = isError ? 'status-error' : 'status-success';
+            setTimeout(() => { status.textContent = ''; status.className = ''; }, 5000);
         }
 
-        // 2. Send a POST request to add a new workflow
+        // --- AJAX FUNCTIONS ---
+
+        // 1. Fetch all workflows
+        function loadWorkflows() {
+            fetch('/api/workflows')
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to load workflows.');
+                    return response.json();
+                })
+                .then(data => {
+                    workflowTableBody.innerHTML = '';
+                    
+                    data.forEach(workflow => {
+                        const rowId = workflow.workflow_id ?? workflow.id;
+                        const row = `
+                            <tr data-workflow-id="${rowId}">
+                                <td>${rowId}</td>
+                                <td>${workflow.workflow_name || 'N/A'}</td>
+                                <td>${workflow.workflow_type || 'N/A'}</td>
+                                <td>${workflow.created_by || 'System'}</td>
+                                <td>
+                                    <button type="button" class="btn-delete delete-workflow-button" data-workflow-id="${rowId}">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>`;
+                        workflowTableBody.insertAdjacentHTML('beforeend', row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showStatus('Failed to load workflows.', true);
+                });
+        }
+
+        // 2. Add Workflow
         function addWorkflow() {
+            const name = document.getElementById('name').value;
+            const type = document.getElementById('type').value;
+
+            if (!name || !type) {
+                showStatus('Please enter both name and type.', true);
+                return;
+            }
+
             const payload = {
-                name: document.getElementById('name').value,
-                type: document.getElementById('type').value,
+                name: name,
+                type: type,
                 description: 'Added via Web UI',
                 subtype: 'Standard',
                 user: 'AdminUser'
@@ -75,27 +116,63 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(async response => {
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to add.');
+                return result;
+            })
             .then(() => {
-                loadWorkflows(); // Refresh table
-                document.getElementById('name').value = ''; // Clear input
+                loadWorkflows();
+                document.getElementById('name').value = '';
+                document.getElementById('type').value = '';
+                showStatus('Workflow added successfully.');
+            })
+            .catch(error => {
+                showStatus(error.message, true);
             });
         }
 
-        // 3. Send a DELETE request to remove a workflow
+        // 3. Delete Workflow
         function deleteWorkflow(workflowId) {
+            if (!confirm(`Are you sure you want to delete workflow #${workflowId}?`)) return;
+
             fetch(`/api/workflows/${workflowId}`, {
                 method: 'DELETE'
             })
-            .then(response => response.json())
-            .then(() => {
-                loadWorkflows();
+            .then(async response => {
+                const data = await response.json();
+                if (!response.ok || data.status !== 'deleted') {
+                    throw new Error(data.error || 'Failed to delete.');
+                }
+                return data;
             })
-            .catch(error => console.error('Error deleting workflow:', error));
+            .then(() => {
+                const row = document.querySelector(`tr[data-workflow-id="${workflowId}"]`);
+                if (row) row.remove();
+                showStatus(`Workflow #${workflowId} deleted.`);
+            })
+            .catch(error => {
+                console.error('Delete error:', error);
+                showStatus(error.message, true);
+            });
         }
 
-        // Load data automatically when the page opens
-        window.onload = loadWorkflows;
+        addWorkflowButton.addEventListener('click', addWorkflow);
+
+        workflowTableBody.addEventListener('click', event => {
+            const deleteButton = event.target.closest('.delete-workflow-button');
+            if (!deleteButton) {
+                return;
+            }
+
+            const workflowId = Number(deleteButton.dataset.workflowId);
+            if (!Number.isNaN(workflowId)) {
+                deleteWorkflow(workflowId);
+            }
+        });
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', loadWorkflows);
     </script>
 </body>
 </html>
