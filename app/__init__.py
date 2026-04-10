@@ -1,7 +1,8 @@
 import os
 
 from flask import Flask
-from config import get_config
+
+from app.project_config import get_config
 from app.databases.dao_mysql import MySQLDatabase
 from app.databases.dao_sqllite import SQLiteDatabase
 
@@ -77,3 +78,6 @@ def create_app():
     app.register_blueprint(routes.bp)
 
     return app
+
+
+app = create_app()

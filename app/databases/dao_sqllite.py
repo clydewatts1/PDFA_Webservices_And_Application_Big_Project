@@ -4,7 +4,7 @@ from datetime import datetime
 from functools import wraps
 from typing import Any
 
-import config
+from app.project_config import get_config
 
 from .dao_base import BaseDAO
 
@@ -71,7 +71,7 @@ class SQLiteDatabase(BaseDAO):
 
 	def __init__(self, db_path: str | None = None, dbname: str | None = None):
 		"""Initialize the SQLite database path and connection state."""
-		runtime_config = config.get_config()
+		runtime_config = get_config()
 		default_name = dbname or runtime_config.DB_NAME
 		self.db_path = db_path or f"{default_name}.sqlite3"
 		self.connection: sqlite3.Connection | None = None

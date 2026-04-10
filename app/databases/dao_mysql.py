@@ -35,10 +35,10 @@ import logging
 from functools import wraps
 from typing import Any
 
-import config
 import mysql.connector
-
 import pymysql
+
+from app.project_config import get_config
 
 from .dao_base import BaseDAO
 
@@ -150,7 +150,7 @@ class MySQLDatabase(BaseDAO):
             password (str): Password for the MySQL server.
             dbname (str): Name of the database to connect to.
         """
-        runtime_config = config.get_config()
+        runtime_config = get_config()
         self.host = host or runtime_config.DB_HOST
         self.user = user or runtime_config.DB_USER
         self.password = password or runtime_config.DB_PASSWORD

@@ -2,14 +2,15 @@ from pathlib import Path
 
 from flask import Flask, jsonify, request, render_template, abort
 from DAO import MySQLDatabase # Ensure this matches your .py file name
-import config
+
+from app.project_config import get_config
 
 app = Flask(
     __name__,
     template_folder=str(Path(__file__).resolve().parent / "app" / "templates"),
 )
 
-runtime_config = config.get_config()
+runtime_config = get_config()
 db = MySQLDatabase(
     host=runtime_config.DB_HOST,
     port=runtime_config.DB_PORT,
