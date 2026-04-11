@@ -21,11 +21,13 @@ def _build_fallback_module(project_root: Path) -> SimpleNamespace:
 
     class Config:
         SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-123")
+        DB_BACKEND = (os.getenv("DB_BACKEND", "") or "").strip().lower()
         DB_PORT = os.getenv("DB_PORT", 3306)
         DB_AUTH_PLUGIN = os.getenv("DB_AUTH_PLUGIN", "mysql_native_password")
 
     class DevelopmentConfig(Config):
         DEBUG = True
+        DB_BACKEND = Config.DB_BACKEND or "sqlite"
         #DB_URL = "sqlite:///local.db"
         # Placeholder values for local init
         # Use memor for testing to avoid file permissions issues on PA
@@ -37,11 +39,12 @@ def _build_fallback_module(project_root: Path) -> SimpleNamespace:
 
     class ProductionConfig(Config):
         DEBUG = False
+        DB_BACKEND = Config.DB_BACKEND or "mysql"
         DB_HOST = os.getenv("DB_HOST")
         DB_USER = os.getenv("DB_USER")
         DB_PASSWORD = os.getenv("DB_PASSWORD")
         DB_NAME = os.getenv("DB_NAME")
-        DB_URL = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+        DB_URL = os.getenv("DB_URL") or f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 
     def get_config():
         if os.getenv("PYTHONANYWHERE_DOMAIN"):

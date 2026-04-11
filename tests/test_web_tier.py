@@ -2,8 +2,10 @@ from pathlib import Path
 
 import pytest
 
+import app as app_package
 from app import create_app
 from app.databases.dao_mysql import MySQLDatabase
+from app.databases.dao_sqllite import SQLiteDatabase
 
 
 def _build_test_dao(flask_app):
@@ -65,6 +67,43 @@ def client(flask_app):
     return flask_app.test_client()
 
 
+def test_create_app_honors_sqlite_backend_override(tmp_path):
+    db_path = Path(tmp_path) / "override.sqlite3"
+    app = create_app(
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test-secret-key",
+            "DB_BACKEND": "sqlite",
+            "DB_NAME": "override_test",
+            "DB_URL": f"sqlite:///{db_path.as_posix()}",
+            "DB_HOST": None,
+            "DB_USER": None,
+            "DB_PASSWORD": None,
+        }
+    )
+
+    dao_factory = app.extensions["dao_factory"]
+    assert dao_factory["class"] is SQLiteDatabase
+    assert Path(dao_factory["kwargs"]["db_path"]) == db_path.resolve()
+
+
+def test_create_app_resolves_relative_sqlite_path_to_absolute_location():
+    app = create_app(
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test-secret-key",
+            "DB_BACKEND": "sqlite",
+            "DB_NAME": "relative_test",
+            "DB_URL": "sqlite:///relative_test.sqlite3",
+        }
+    )
+
+    dao_factory = app.extensions["dao_factory"]
+    expected_path = Path(app_package.__file__).resolve().parent.parent / "relative_test.sqlite3"
+    assert dao_factory["class"] is SQLiteDatabase
+    assert Path(dao_factory["kwargs"]["db_path"]) == expected_path.resolve()
+
+
 def test_dashboard_redirects_to_login_when_unauthenticated(client):
     response = client.get("/dashboard/workflows", follow_redirects=False)
 
@@ -81,6 +120,17 @@ def test_login_sets_session_and_redirects_to_workflow_selection(client):
     with client.session_transaction() as session_state:
         assert session_state["logged_in"] is True
         assert session_state["username"] == "Test User"
+
+
+def test_select_workflow_page_shows_logoff_option(client):
+    _login(client)
+
+    response = client.get("/select-workflow")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Log off" in page
+    assert "/logout" in page
 
 
 def test_select_workflow_page_offers_create_form_when_empty(client):
@@ -145,6 +195,28 @@ def test_workflow_selection_sets_active_context(client, flask_app):
     with client.session_transaction() as session_state:
         assert session_state["workflow_id"] == workflow_id
         assert session_state["workflow_name"] == "Project Intake"
+
+
+def test_dashboard_shows_logoff_option_when_logged_in(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Logoff Workflow",
+        "Workflow for dashboard logoff action",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.get("/dashboard/workflows")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Log off" in page
+    assert "/logout" in page
 
 
 def test_create_workflow_from_selection_sets_context_and_redirects(client):

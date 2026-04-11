@@ -64,6 +64,14 @@ PDFA_Webservices_And_Application_Big_Project/
    copy .env.example .env  # On PowerShell: Copy-Item .env.example .env
    ```
 
+   `DB_BACKEND` controls which DAO backend is used. Supported values are `sqlite` and `mysql`.
+   On PythonAnywhere, the default remains `mysql`, but you can force SQLite for now with:
+
+   ```bash
+   DB_BACKEND=sqlite
+   DB_URL=sqlite:///local.db
+   ```
+
    `DB_AUTH_PLUGIN` can be left blank for connector auto-negotiation.
    If your MySQL 8 user uses `caching_sha2_password`, set `DB_AUTH_PLUGIN=caching_sha2_password`.
 
@@ -103,6 +111,15 @@ python -m pytest tests/test_web_tier.py -q
 ```
 
 ## PythonAnywhere Deployment
+
+If the production deployment should use SQLite temporarily instead of MySQL, set these in the PythonAnywhere environment or project `.env` before reloading the web app:
+
+```bash
+DB_BACKEND=sqlite
+DB_URL=sqlite:///local.db
+```
+
+Relative SQLite URLs are resolved to an absolute path under the project root automatically, so `sqlite:///local.db` is safe to use without relying on the process working directory.
 
 1. Create a new web app on PythonAnywhere, choosing Flask and the appropriate Python version.
 1. Upload your project files to the PythonAnywhere file system, maintaining the directory structure.

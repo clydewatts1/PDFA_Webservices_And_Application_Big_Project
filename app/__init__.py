@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from flask import Flask, g
 
@@ -16,17 +17,27 @@ def _config_value(config_obj, key: str, default=None):
 
 def _sqlite_db_path(config_obj) -> str:
     """Build a filesystem path for the SQLite backend from config values."""
+    project_root = Path(__file__).resolve().parent.parent
     db_url = _config_value(config_obj, "DB_URL", "") or ""
     if isinstance(db_url, str) and db_url.startswith("sqlite:///"):
-        return db_url.replace("sqlite:///", "", 1)
+        raw_path = db_url.replace("sqlite:///", "", 1)
+        sqlite_path = Path(raw_path)
+        if not sqlite_path.is_absolute():
+            sqlite_path = project_root / sqlite_path
+        return str(sqlite_path.resolve())
 
     db_name = _config_value(config_obj, "DB_NAME", "local_db") or "local_db"
-    return f"{db_name}.sqlite3"
+    return str((project_root / f"{db_name}.sqlite3").resolve())
 
 
 def _resolve_dao_factory(config_obj):
     """Return the configured DAO class and initialization kwargs for the app."""
-    if os.getenv('PYTHONANYWHERE_DOMAIN'):
+    backend = (_config_value(config_obj, "DB_BACKEND", "") or "").strip().lower()
+
+    if backend and backend not in {"sqlite", "mysql"}:
+        raise ValueError(f"Unsupported DB_BACKEND: {backend}. Expected 'sqlite' or 'mysql'.")
+
+    if backend == "mysql" or (not backend and os.getenv('PYTHONANYWHERE_DOMAIN')):
         return MySQLDatabase, {
             "host": _config_value(config_obj, "DB_HOST"),
             "user": _config_value(config_obj, "DB_USER"),
