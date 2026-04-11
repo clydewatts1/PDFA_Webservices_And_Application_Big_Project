@@ -119,8 +119,8 @@ function resetInteractionComponentDrawer() {
     interactionComponentForm.reset();
     document.getElementById("interaction_component_id").value = "";
     document.getElementById("component_direction").value = "outbound";
-    drawerEyebrow.textContent = "Create interaction component";
-    drawerTitle.textContent = "Create interaction component";
+    drawerEyebrow.textContent = "Interaction component";
+    drawerTitle.textContent = "New record";
 }
 
 function hideDrawerForms() {

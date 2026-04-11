@@ -650,7 +650,8 @@ def test_interaction_components_dashboard_empty_state_shows_create_affordance(cl
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Create first interaction component" in page
+    assert "Create first interaction component" not in page
+    assert "No interaction components exist for the active workflow yet." in page
 
 
 def test_interaction_components_dashboard_only_shows_active_workflow_data(client, flask_app):
