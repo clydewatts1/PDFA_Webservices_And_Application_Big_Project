@@ -17,9 +17,14 @@ from flask import (
 )
 
 from app.databases.dao_base import BaseDAO
+from app.databases.dao_mysql import MySQLDatabase
 
 
 bp = Blueprint("main", __name__)
+
+
+class DatabaseUnavailableError(RuntimeError):
+    """Raised when the configured DAO backend cannot be used for the current request."""
 
 _PUBLIC_ENDPOINTS = {
     "main.login",
@@ -256,16 +261,43 @@ def get_db_provider() -> BaseDAO:
     dao_factory = current_app.extensions.get("dao_factory")
     if not dao_factory:
         current_app.logger.error("Route database provider lookup failed: dao_factory is missing.")
-        raise RuntimeError("Database provider is not configured on the Flask app.")
+        raise DatabaseUnavailableError("Database provider is not configured on the Flask app.")
 
-    database_provider = dao_factory["class"](**dao_factory["kwargs"])
+    dao_class = dao_factory["class"]
+    dao_kwargs = dao_factory["kwargs"]
+    if dao_class is MySQLDatabase:
+        missing_fields = [
+            key
+            for key in ("host", "user", "password", "dbname")
+            if not str(dao_kwargs.get(key) or "").strip()
+        ]
+        if missing_fields:
+            raise DatabaseUnavailableError(
+                "MySQL configuration is incomplete. Set DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME in "
+                "your PythonAnywhere environment variables or project .env file. "
+                f"Missing: {', '.join(missing_fields)}."
+            )
+
+    database_provider = dao_class(**dao_kwargs)
     code, err, _ = database_provider.connect()
     if code != 0:
         current_app.logger.error("Route database connection failed: %s", err)
-        raise RuntimeError(err)
+        raise DatabaseUnavailableError(
+            "Database connection failed. Verify the PythonAnywhere MySQL host, username, password, database "
+            f"name, and auth plugin settings. Details: {err}"
+        )
 
     g.db = database_provider
     return database_provider
+
+
+@bp.app_errorhandler(DatabaseUnavailableError)
+def handle_database_unavailable(err: DatabaseUnavailableError):
+    """Return a user-facing response when the configured database is unavailable."""
+    current_app.logger.error("Database unavailable during request: %s", err)
+    if _is_api_request():
+        return json_error(str(err), 503, "database_unavailable")
+    return render_template("database_error.html", error_message=str(err)), 503
 
 
 def _current_workflow_or_none() -> dict | None:

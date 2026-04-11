@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from app import create_app
+from app.databases.dao_mysql import MySQLDatabase
 
 
 def _build_test_dao(flask_app):
@@ -100,6 +101,28 @@ def test_logged_in_user_without_context_redirects_to_workflow_selection(client):
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/select-workflow")
+
+
+def test_select_workflow_shows_database_error_when_mysql_config_is_incomplete(client, flask_app):
+    flask_app.extensions["dao_factory"] = {
+        "class": MySQLDatabase,
+        "kwargs": {
+            "host": None,
+            "user": None,
+            "password": None,
+            "dbname": None,
+            "port": 3306,
+            "auth_plugin": "mysql_native_password",
+        },
+    }
+
+    _login(client)
+    response = client.get("/select-workflow")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 503
+    assert "MySQL configuration is incomplete" in page
+    assert "Missing: host, user, password, dbname" in page
 
 
 def test_workflow_selection_sets_active_context(client, flask_app):
