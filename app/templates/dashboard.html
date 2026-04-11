@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+
+{% block title %}PDFA Dashboard{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-canvas">
+    <header class="fixed inset-x-0 top-0 z-40 border-b border-divider bg-surface/95 backdrop-blur">
+        <div class="flex h-16 items-center gap-4 px-4 md:px-6">
+            <button type="button" id="sidebar-toggle" class="inline-flex h-10 w-10 items-center justify-center rounded-google text-muted transition hover:bg-canvas hover:text-ink">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M4 7h16" />
+                    <path d="M4 12h16" />
+                    <path d="M4 17h16" />
+                </svg>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M4 7.5h16v9H4z" />
+                        <path d="M8 7.5V5.5h8v2" />
+                    </svg>
+                </div>
+                <div class="hidden items-center gap-3 md:flex">
+                    <div>
+                        <div class="text-sm font-semibold text-ink">PDFA</div>
+                        <div class="text-xs text-muted">Web Tier</div>
+                    </div>
+                    <div class="h-6 w-px bg-divider"></div>
+                    <span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">Active Workflow: {{ active_workflow.workflow_name }}</span>
+                </div>
+            </div>
+
+            <div class="mx-auto hidden max-w-xl flex-1 md:block">
+                <div class="flex items-center gap-3 rounded-full bg-canvas px-4 py-2 text-sm text-muted">
+                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="11" cy="11" r="6" />
+                        <path d="m20 20-3.5-3.5" />
+                    </svg>
+                    <span>Search workflows, roles, guards, interactions</span>
+                </div>
+            </div>
+
+            <div class="ml-auto flex items-center gap-3">
+                <a href="{{ url_for('main.swap_workflow') }}" class="hidden rounded-google border border-divider px-4 py-2 text-sm font-medium text-ink transition hover:bg-canvas md:inline-flex">Swap Workflow</a>
+                <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-canvas hover:text-ink">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 8h.01" />
+                        <path d="M11 12h1v4h1" />
+                    </svg>
+                </button>
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">{{ user_initials }}</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex pt-16">
+        <aside id="sidebar" class="fixed inset-y-16 left-0 z-30 w-[248px] -translate-x-full border-r border-divider bg-surface px-3 py-5 transition-transform duration-200 md:translate-x-0">
+            <nav class="space-y-1">
+                {% for item in nav_items %}
+                    <a
+                        href="{{ item.href }}"
+                        class="flex items-center justify-between rounded-google px-3 py-3 text-sm font-medium transition {% if item.active %}bg-primary/10 text-primary{% else %}text-muted hover:bg-canvas hover:text-ink{% endif %}"
+                    >
+                        <span>{{ item.label }}</span>
+                        {% if not item.implemented %}
+                            <span class="rounded-full bg-divider px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted">Soon</span>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </nav>
+        </aside>
+
+        <main class="min-w-0 flex-1 px-4 py-6 md:ml-[248px] md:px-8">
+            <section class="grid gap-4 md:grid-cols-3">
+                {% for card in summary_cards %}
+                    <article class="rounded-[20px] border border-divider bg-surface p-6 shadow-google">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] {% if card.tone == 'blue' %}text-primary{% else %}text-muted{% endif %}">{{ card.label }}</p>
+                        <p class="mt-3 text-3xl font-semibold text-ink">{{ card.value }}</p>
+                    </article>
+                {% endfor %}
+            </section>
+
+            <section class="mt-6 rounded-[20px] border border-divider bg-surface shadow-google">
+                <div class="flex flex-col gap-4 border-b border-divider px-6 py-5 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h1 class="text-2xl font-semibold text-ink">{{ active_section.replace('-', ' ').title() }}</h1>
+                        <p class="mt-1 text-sm text-muted">
+                            {% if active_section == 'workflows' %}
+                                Manage all workflows and keep the active context up to date.
+                            {% elif active_section == 'roles' %}
+                                Roles are scoped to {{ active_workflow.workflow_name }}.
+                            {% elif active_section == 'guards' %}
+                                Guards are scoped to {{ active_workflow.workflow_name }}.
+                            {% elif active_section == 'interactions' %}
+                                Interactions are scoped to {{ active_workflow.workflow_name }}.
+                            {% elif active_section == 'interaction-components' %}
+                                Interaction Components are scoped to {{ active_workflow.workflow_name }}.
+                            {% else %}
+                                This section is staged next in the rollout.
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if active_section == 'workflows' %}
+                        <button type="button" data-drawer-open="workflow" class="inline-flex items-center justify-center rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Create Workflow</button>
+                    {% elif active_section == 'roles' %}
+                        <button type="button" data-drawer-open="role" class="inline-flex items-center justify-center rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Create Role</button>
+                    {% elif active_section == 'guards' %}
+                        <button type="button" data-drawer-open="guard" class="inline-flex items-center justify-center rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Create Guard</button>
+                    {% elif active_section == 'interactions' %}
+                        <button type="button" data-drawer-open="interaction" class="inline-flex items-center justify-center rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Create Interaction</button>
+                    {% elif active_section == 'interaction-components' %}
+                        <button type="button" data-drawer-open="interaction-component" class="inline-flex items-center justify-center rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Create Interaction Component</button>
+                    {% endif %}
+                </div>
+
+                <div class="overflow-x-auto">
+                    {% if active_section == 'workflows' %}
+                        <table class="min-w-full text-left text-[14px]">
+                            <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">Name</th>
+                                    <th class="px-6 py-3 font-medium">Description</th>
+                                    <th class="px-6 py-3 font-medium">Type</th>
+                                    <th class="px-6 py-3 font-medium">Created By</th>
+                                    <th class="px-6 py-3 text-right font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for workflow in workflows %}
+                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                        <td class="px-6 py-4 font-medium text-ink">{{ workflow.workflow_name }}</td>
+                                        <td class="px-6 py-4 text-muted"><span class="clamp-2">{{ workflow.workflow_description or "-" }}</span></td>
+                                        <td class="px-6 py-4 text-muted">{{ workflow.workflow_type }}{% if workflow.workflow_subtype %} / {{ workflow.workflow_subtype }}{% endif %}</td>
+                                        <td class="px-6 py-4 text-muted">{{ workflow.created_by or "System" }}</td>
+                                        <td class="px-6 py-4 text-right">
+                                            <div class="inline-flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                                                <button type="button" data-drawer-open="workflow" data-workflow-id="{{ workflow.workflow_id }}" data-workflow-name="{{ workflow.workflow_name }}" data-workflow-description="{{ workflow.workflow_description or '' }}" data-workflow-type="{{ workflow.workflow_type }}" data-workflow-subtype="{{ workflow.workflow_subtype or '' }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-primary/10 hover:text-primary">
+                                                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m13 7 4 4" /></svg>
+                                                </button>
+                                                <form action="{{ url_for('main.delete_workflow_form', workflow_id=workflow.workflow_id) }}" method="post" data-delete-form="workflow">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-red-50 hover:text-danger">
+                                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-muted">No workflows available yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% elif active_section == 'roles' %}
+                        <table class="min-w-full text-left text-[14px]">
+                            <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">Role</th>
+                                    <th class="px-6 py-3 font-medium">Description</th>
+                                    <th class="px-6 py-3 font-medium">Type</th>
+                                    <th class="px-6 py-3 font-medium">Updated</th>
+                                    <th class="px-6 py-3 text-right font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                        <td class="px-6 py-4 font-medium text-ink">{{ role.role_name }}</td>
+                                        <td class="px-6 py-4 text-muted"><span class="clamp-2">{{ role.role_description or "-" }}</span></td>
+                                        <td class="px-6 py-4 text-muted">{{ role.role_type }}{% if role.role_subtype %} / {{ role.role_subtype }}{% endif %}</td>
+                                        <td class="px-6 py-4 text-muted">{{ role.updated_at or role.created_at or "-" }}</td>
+                                        <td class="px-6 py-4 text-right">
+                                            <div class="inline-flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                                                <button type="button" data-drawer-open="role" data-role-id="{{ role.role_id }}" data-role-name="{{ role.role_name }}" data-role-description="{{ role.role_description or '' }}" data-role-type="{{ role.role_type }}" data-role-subtype="{{ role.role_subtype or '' }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-primary/10 hover:text-primary">
+                                                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m13 7 4 4" /></svg>
+                                                </button>
+                                                <form action="{{ url_for('main.delete_role_form', role_id=role.role_id) }}" method="post" data-delete-form="role">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-red-50 hover:text-danger">
+                                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-12 text-center text-sm text-muted">
+                                            <div class="flex flex-col items-center gap-3">
+                                                <p>No roles exist for the active workflow yet.</p>
+                                                <button type="button" data-drawer-open="role" class="inline-flex items-center justify-center rounded-google border border-divider px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10">Create first role</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% elif active_section == 'guards' %}
+                        <table class="min-w-full text-left text-[14px]">
+                            <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">Guard</th>
+                                    <th class="px-6 py-3 font-medium">Description</th>
+                                    <th class="px-6 py-3 font-medium">Type</th>
+                                    <th class="px-6 py-3 font-medium">Updated</th>
+                                    <th class="px-6 py-3 text-right font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for guard in guards %}
+                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                        <td class="px-6 py-4 font-medium text-ink">{{ guard.guard_name }}</td>
+                                        <td class="px-6 py-4 text-muted"><span class="clamp-2">{{ guard.guard_description or '-' }}</span></td>
+                                        <td class="px-6 py-4 text-muted">{{ guard.guard_type }}{% if guard.guard_subtype %} / {{ guard.guard_subtype }}{% endif %}</td>
+                                        <td class="px-6 py-4 text-muted">{{ guard.updated_at or guard.created_at or '-' }}</td>
+                                        <td class="px-6 py-4 text-right">
+                                            <div class="inline-flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                                                <button type="button" data-drawer-open="guard" data-guard-id="{{ guard.guard_id }}" data-guard-name="{{ guard.guard_name }}" data-guard-description="{{ guard.guard_description or '' }}" data-guard-type="{{ guard.guard_type }}" data-guard-subtype="{{ guard.guard_subtype or '' }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-primary/10 hover:text-primary">
+                                                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m13 7 4 4" /></svg>
+                                                </button>
+                                                <form action="{{ url_for('main.delete_guard_form', guard_id=guard.guard_id) }}" method="post" data-delete-form="guard">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-red-50 hover:text-danger">
+                                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-12 text-center text-sm text-muted">
+                                            <div class="flex flex-col items-center gap-3">
+                                                <p>No guards exist for the active workflow yet.</p>
+                                                <button type="button" data-drawer-open="guard" class="inline-flex items-center justify-center rounded-google border border-divider px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10">Create first guard</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% elif active_section == 'interactions' %}
+                        <table class="min-w-full text-left text-[14px]">
+                            <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">Interaction ID</th>
+                                    <th class="px-6 py-3 font-medium">Name</th>
+                                    <th class="px-6 py-3 font-medium">Workflow</th>
+                                    <th class="px-6 py-3 font-medium">Updated</th>
+                                    <th class="px-6 py-3 text-right font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for interaction in interactions %}
+                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                        <td class="px-6 py-4 font-medium text-ink">{{ interaction.interaction_id }}</td>
+                                        <td class="px-6 py-4 text-muted">{{ interaction.interaction_name }}</td>
+                                        <td class="px-6 py-4 text-muted">{{ active_workflow.workflow_name }}</td>
+                                        <td class="px-6 py-4 text-muted">{{ interaction.updated_at or interaction.created_at or '-' }}</td>
+                                        <td class="px-6 py-4 text-right">
+                                            <div class="inline-flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                                                <button type="button" data-drawer-open="interaction" data-interaction-id="{{ interaction.interaction_id }}" data-interaction-name="{{ interaction.interaction_name }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-primary/10 hover:text-primary">
+                                                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m13 7 4 4" /></svg>
+                                                </button>
+                                                <form action="{{ url_for('main.delete_interaction_form', interaction_id=interaction.interaction_id) }}" method="post" data-delete-form="interaction">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-red-50 hover:text-danger">
+                                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-12 text-center text-sm text-muted">
+                                            <div class="flex flex-col items-center gap-3">
+                                                <p>No interactions exist for the active workflow yet.</p>
+                                                <button type="button" data-drawer-open="interaction" class="inline-flex items-center justify-center rounded-google border border-divider px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10">Create first interaction</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% elif active_section == 'interaction-components' %}
+                        <table class="min-w-full text-left text-[14px]">
+                            <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">Component</th>
+                                    <th class="px-6 py-3 font-medium">Type</th>
+                                    <th class="px-6 py-3 font-medium">Interaction</th>
+                                    <th class="px-6 py-3 font-medium">Role / Guard</th>
+                                    <th class="px-6 py-3 font-medium">Direction</th>
+                                    <th class="px-6 py-3 font-medium">Updated</th>
+                                    <th class="px-6 py-3 text-right font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for component in interaction_components %}
+                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                        <td class="px-6 py-4">
+                                            <div class="font-medium text-ink">{{ component.interaction_component_name }}</div>
+                                            <div class="mt-1 text-muted"><span class="clamp-2">{{ component.interaction_component_description or '-' }}</span></div>
+                                        </td>
+                                        <td class="px-6 py-4 text-muted">{{ component.interaction_component_type }}{% if component.interaction_component_subtype %} / {{ component.interaction_component_subtype }}{% endif %}</td>
+                                        <td class="px-6 py-4 text-muted">{{ component.interaction_name }}</td>
+                                        <td class="px-6 py-4 text-muted">
+                                            <div>{{ component.role_name or 'No role' }}</div>
+                                            <div class="mt-1 text-xs text-muted/80">{{ component.guard_name or 'No guard' }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 text-muted">{{ component.direction_label }}</td>
+                                        <td class="px-6 py-4 text-muted">{{ component.updated_at or component.created_at or '-' }}</td>
+                                        <td class="px-6 py-4 text-right">
+                                            <div class="inline-flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                                                <button type="button" data-drawer-open="interaction-component" data-interaction-component-id="{{ component.interaction_component_id }}" data-interaction-component-name="{{ component.interaction_component_name }}" data-interaction-component-description="{{ component.interaction_component_description or '' }}" data-interaction-component-type="{{ component.interaction_component_type }}" data-interaction-component-subtype="{{ component.interaction_component_subtype or '' }}" data-interaction-id="{{ component.interaction_id }}" data-role-id="{{ component.role_id or '' }}" data-guard-id="{{ component.guard_id or '' }}" data-direction="{{ component.direction }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-primary/10 hover:text-primary">
+                                                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m13 7 4 4" /></svg>
+                                                </button>
+                                                <form action="{{ url_for('main.delete_interaction_component_form', interaction_component_id=component.interaction_component_id) }}" method="post" data-delete-form="interaction component">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-red-50 hover:text-danger">
+                                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-12 text-center text-sm text-muted">
+                                            <div class="flex flex-col items-center gap-3">
+                                                <p>No interaction components exist for the active workflow yet.</p>
+                                                <button type="button" data-drawer-open="interaction-component" class="inline-flex items-center justify-center rounded-google border border-divider px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10">Create first interaction component</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="px-6 py-16 text-center">
+                            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                                <svg viewBox="0 0 24 24" class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 3" /><circle cx="12" cy="12" r="9" /></svg>
+                            </div>
+                            <h2 class="mt-5 text-xl font-semibold text-ink">{{ active_section.replace('-', ' ').title() }} are next</h2>
+                            <p class="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted">This first implementation phase ships the complete workflow shell plus a full roles CRUD pattern. Guards, Interactions, and Interaction Components will reuse the same drawer and table structure.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="drawer-overlay" class="pointer-events-none fixed inset-0 z-40 bg-ink/30 opacity-0 transition"></div>
+    <aside id="entity-drawer" class="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl translate-x-full flex-col border-l border-divider bg-surface shadow-raised transition-transform duration-200">
+        <div class="flex items-center justify-between border-b border-divider px-6 py-5">
+            <div>
+                <p id="drawer-eyebrow" class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Create</p>
+                <h2 id="drawer-title" class="mt-2 text-xl font-semibold text-ink">New record</h2>
+            </div>
+            <button type="button" data-drawer-close class="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-canvas hover:text-ink">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6 18 18" /><path d="M18 6 6 18" /></svg>
+            </button>
+        </div>
+
+        <div class="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+            <form id="workflow-drawer-form" action="{{ url_for('main.save_workflow_form') }}" method="post" class="hidden space-y-5" data-drawer-form="workflow">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="workflow_id" id="workflow_id">
+                <div>
+                    <label for="workflow_name" class="mb-2 block text-sm font-medium text-muted">Workflow Name</label>
+                    <input id="workflow_name" name="workflow_name" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="workflow_description" class="mb-2 block text-sm font-medium text-muted">Description</label>
+                    <textarea id="workflow_description" name="workflow_description" rows="5" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"></textarea>
+                </div>
+                <div>
+                    <label for="workflow_type" class="mb-2 block text-sm font-medium text-muted">Type</label>
+                    <input id="workflow_type" name="workflow_type" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="workflow_subtype" class="mb-2 block text-sm font-medium text-muted">Subtype</label>
+                    <input id="workflow_subtype" name="workflow_subtype" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+            </form>
+
+            <form id="role-drawer-form" action="{{ url_for('main.save_role_form') }}" method="post" class="hidden space-y-5" data-drawer-form="role">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="role_id" id="role_id">
+                <div>
+                    <label for="role_name" class="mb-2 block text-sm font-medium text-muted">Role Name</label>
+                    <input id="role_name" name="role_name" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="role_description" class="mb-2 block text-sm font-medium text-muted">Description</label>
+                    <textarea id="role_description" name="role_description" rows="5" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"></textarea>
+                </div>
+                <div>
+                    <label for="role_type" class="mb-2 block text-sm font-medium text-muted">Type</label>
+                    <input id="role_type" name="role_type" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="role_subtype" class="mb-2 block text-sm font-medium text-muted">Subtype</label>
+                    <input id="role_subtype" name="role_subtype" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+            </form>
+
+            <form id="guard-drawer-form" action="{{ url_for('main.save_guard_form') }}" method="post" class="hidden space-y-5" data-drawer-form="guard">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="guard_id" id="guard_id">
+                <div>
+                    <label for="guard_name" class="mb-2 block text-sm font-medium text-muted">Guard Name</label>
+                    <input id="guard_name" name="guard_name" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="guard_description" class="mb-2 block text-sm font-medium text-muted">Description</label>
+                    <textarea id="guard_description" name="guard_description" rows="5" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"></textarea>
+                </div>
+                <div>
+                    <label for="guard_type" class="mb-2 block text-sm font-medium text-muted">Type</label>
+                    <input id="guard_type" name="guard_type" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="guard_subtype" class="mb-2 block text-sm font-medium text-muted">Subtype</label>
+                    <input id="guard_subtype" name="guard_subtype" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+            </form>
+
+            <form id="interaction-drawer-form" action="{{ url_for('main.save_interaction_form') }}" method="post" class="hidden space-y-5" data-drawer-form="interaction">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="interaction_id_original" id="interaction_id_original">
+                <div>
+                    <label for="interaction_id" class="mb-2 block text-sm font-medium text-muted">Interaction ID</label>
+                    <input id="interaction_id" name="interaction_id" type="number" step="1" min="1" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="interaction_name" class="mb-2 block text-sm font-medium text-muted">Interaction Name</label>
+                    <input id="interaction_name" name="interaction_name" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+            </form>
+
+            <form id="interaction-component-drawer-form" action="{{ url_for('main.save_interaction_component_form') }}" method="post" class="hidden space-y-5" data-drawer-form="interaction-component">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="interaction_component_id" id="interaction_component_id">
+                <div>
+                    <label for="interaction_component_name" class="mb-2 block text-sm font-medium text-muted">Component Name</label>
+                    <input id="interaction_component_name" name="interaction_component_name" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="interaction_component_description" class="mb-2 block text-sm font-medium text-muted">Description</label>
+                    <textarea id="interaction_component_description" name="interaction_component_description" rows="4" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"></textarea>
+                </div>
+                <div>
+                    <label for="interaction_component_type" class="mb-2 block text-sm font-medium text-muted">Type</label>
+                    <input id="interaction_component_type" name="interaction_component_type" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="interaction_component_subtype" class="mb-2 block text-sm font-medium text-muted">Subtype</label>
+                    <input id="interaction_component_subtype" name="interaction_component_subtype" type="text" class="w-full rounded-google border border-divider px-4 py-3 text-[16px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                </div>
+                <div>
+                    <label for="component_interaction_id" class="mb-2 block text-sm font-medium text-muted">Interaction</label>
+                    <select id="component_interaction_id" name="interaction_id" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                        <option value="">Select an interaction</option>
+                        {% for interaction in component_interaction_options %}
+                            <option value="{{ interaction.interaction_id }}">{{ interaction.interaction_name }} (#{{ interaction.interaction_id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="grid gap-5 md:grid-cols-2">
+                    <div>
+                        <label for="component_role_id" class="mb-2 block text-sm font-medium text-muted">Role</label>
+                        <select id="component_role_id" name="role_id" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                            <option value="">No role</option>
+                            {% for role in component_role_options %}
+                                <option value="{{ role.role_id }}">{{ role.role_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="component_guard_id" class="mb-2 block text-sm font-medium text-muted">Guard</label>
+                        <select id="component_guard_id" name="guard_id" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                            <option value="">No guard</option>
+                            {% for guard in component_guard_options %}
+                                <option value="{{ guard.guard_id }}">{{ guard.guard_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="component_direction" class="mb-2 block text-sm font-medium text-muted">Direction</label>
+                    <select id="component_direction" name="direction" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                        {% for value, label in component_direction_options %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 border-t border-divider px-6 py-4">
+            <button type="button" data-drawer-close class="rounded-google border border-divider px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-canvas">Cancel</button>
+            <button type="submit" form="workflow-drawer-form" id="workflow-submit" class="hidden rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Save</button>
+            <button type="submit" form="role-drawer-form" id="role-submit" class="hidden rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Save</button>
+            <button type="submit" form="guard-drawer-form" id="guard-submit" class="hidden rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Save</button>
+            <button type="submit" form="interaction-drawer-form" id="interaction-submit" class="hidden rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Save</button>
+            <button type="submit" form="interaction-component-drawer-form" id="interaction-component-submit" class="hidden rounded-google bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Save</button>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+{% endblock %}

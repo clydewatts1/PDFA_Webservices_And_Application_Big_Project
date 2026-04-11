@@ -1,6 +1,6 @@
 import logging
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import wraps
 from typing import Any
 
@@ -62,7 +62,7 @@ def _instrument_dao_methods(cls):
 
 def _current_timestamp() -> str:
 	"""Return a UTC timestamp string formatted for persistence."""
-	return datetime.utcnow().isoformat(sep=" ", timespec="seconds")
+	return datetime.now(UTC).replace(tzinfo=None).isoformat(sep=" ", timespec="seconds")
 
 
 @_instrument_dao_methods
@@ -269,7 +269,7 @@ class SQLiteDatabase(BaseDAO):
 		"""Create the workflows table in the SQLite database."""
 		columns = {
 			"workflow_id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-			"workflow_name": "TEXT NOT NULL",
+			"workflow_name": "TEXT NOT NULL UNIQUE",
 			"workflow_description": "TEXT",
 			"workflow_type": "TEXT NOT NULL",
 			"workflow_subtype": "TEXT",

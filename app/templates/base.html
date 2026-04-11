@@ -5,25 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PDFA Workflow Manager{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
-    <div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.10),_transparent_35%),linear-gradient(180deg,_#f8fafc_0%,_#e2e8f0_100%)]">
-        <nav class="border-b border-slate-200/80 bg-white/90 backdrop-blur">
-            <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">PDFA Webservices</p>
-                    <h1 class="text-xl font-semibold text-slate-900">Workflow Administration Console</h1>
-                </div>
-                <div class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600">
-                    Local workflow management
-                </div>
-            </div>
-        </nav>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        canvas: "#F8F9FA",
+                        surface: "#FFFFFF",
+                        primary: "#1A73E8",
+                        divider: "#DADCE0",
+                        ink: "#202124",
+                        muted: "#5F6368",
+                        success: "#1967D2",
+                        danger: "#C5221F",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "Product Sans", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+                    },
+                    boxShadow: {
+                        google: "0 1px 2px 0 rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15)",
+                        raised: "0 2px 8px rgba(60,64,67,.18)",
+                    },
+                    borderRadius: {
+                        google: "0.5rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        .clamp-2 {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+        }
 
-        <main class="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-            <section id="status-message" class="mb-6 hidden rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm" aria-live="polite"></section>
+        [data-toast][hidden] {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-canvas font-sans text-ink antialiased">
+    {% block body %}
+        <main>
             {% block content %}{% endblock %}
         </main>
+    {% endblock %}
+
+    <div class="pointer-events-none fixed bottom-6 left-6 z-[80] flex w-[min(28rem,calc(100vw-3rem))] flex-col gap-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <section
+                        data-toast
+                        class="pointer-events-auto rounded-google border bg-surface px-4 py-3 text-sm shadow-google {% if category == 'error' %}border-danger/20 text-danger{% else %}border-primary/20 text-primary{% endif %}"
+                    >
+                        {{ message }}
+                    </section>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
     </div>
 
     {% block scripts %}{% endblock %}

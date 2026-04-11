@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in | PDFA{% endblock %}
+
+{% block content %}
+<section class="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(26,115,232,0.14),_transparent_38%),linear-gradient(180deg,_#F8F9FA_0%,_#EEF2F6_100%)] px-6 py-10">
+    <div class="w-full max-w-[450px] rounded-[24px] border border-divider bg-surface p-10 shadow-google">
+        <div class="mb-8 flex flex-col items-center text-center">
+            <div class="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <svg viewBox="0 0 24 24" class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M4 7.5h16v9H4z" />
+                    <path d="M8 7.5V5.5h8v2" />
+                    <path d="M8.5 12h7" />
+                </svg>
+            </div>
+            <h1 class="text-[24px] font-semibold text-ink">Sign in</h1>
+            <p class="mt-2 text-[16px] text-muted">Use your PDFA Account</p>
+        </div>
+
+        <form action="{{ url_for('main.login') }}" method="post" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div>
+                <label for="username" class="mb-2 block text-sm font-medium text-muted">Username</label>
+                <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    autocomplete="username"
+                    class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+                >
+            </div>
+
+            <div>
+                <label for="password" class="mb-2 block text-sm font-medium text-muted">Password</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+                >
+            </div>
+
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="inline-flex items-center justify-center rounded-google bg-primary px-6 py-3 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">
+                    Next
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

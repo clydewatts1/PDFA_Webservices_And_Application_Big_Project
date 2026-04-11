@@ -343,7 +343,7 @@ class MySQLDatabase(BaseDAO):
         """Creates workflow table if it does not exits in the specified database."""
         columns = {
             "workflow_id": "INT PRIMARY KEY AUTO_INCREMENT",
-            "workflow_name": "VARCHAR(255) NOT NULL",
+            "workflow_name": "VARCHAR(255) NOT NULL UNIQUE",
             "workflow_description": "TEXT",
             "workflow_type": "VARCHAR(50) NOT NULL",
             "workflow_subtype": "VARCHAR(50)",

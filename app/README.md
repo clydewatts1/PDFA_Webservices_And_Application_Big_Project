@@ -10,32 +10,41 @@ The app package is responsible for:
 - registering routes and request handlers
 - rendering templates and serving static assets
 - delegating all persistence work to DAO implementations instead of embedding SQL in routes
+- enforcing lightweight authentication, workflow context, and CSRF checks for the server-rendered web tier
 
 ## Main Files
 
 ### `__init__.py`
 
-This file exposes `create_app()`, the application factory. It creates the Flask app, loads configuration from `config.py`, selects a database provider, performs basic startup initialization, and registers the route blueprint.
+This file exposes `create_app()`, the application factory. It creates the Flask app, loads configuration from `config.py`, selects a database provider, performs basic startup initialization, stores DAO construction metadata on the app, and registers the route blueprint.
 
 The intended flow is:
 
 1. Create the Flask app object.
 2. Load the active config class with `app.config.from_object(...)`.
 3. Choose a DAO backend for the current environment.
-4. Open the database connection and create required tables if needed.
-5. Register blueprints and return the configured app.
+4. Bootstrap schema creation using a temporary DAO instance.
+5. Open a per-request DAO on `flask.g` during request handling and close it on teardown.
+6. Register blueprints and return the configured app.
 
 ### `routes.py`
 
-This file defines the web routes using a Flask `Blueprint`. Route handlers access the active DAO through a small `get_db_provider()` helper, which reads `current_app.db` and returns the configured provider as a `BaseDAO`. That keeps the web layer tied to the DAO contract rather than to a specific backend implementation.
+This file defines the web routes using a Flask `Blueprint`. Route handlers access the active DAO through a small `get_db_provider()` helper, which reads the request-scoped provider from `flask.g` and constructs it from app-level DAO factory metadata when needed. That keeps the web layer tied to the DAO contract rather than to a specific backend implementation.
 
-The Blueprint currently serves the workflow management page and exposes JSON CRUD endpoints for these entities:
+The Blueprint currently serves the login flow, workflow selection flow, dashboard sections, and JSON CRUD endpoints for these entities:
 
 - workflows
 - roles
 - guards
 - interactions
 - interaction components
+
+The server-rendered flow is:
+
+1. `/login` establishes a lightweight authenticated session.
+2. `/select-workflow` lets the user choose or create the active workflow.
+3. `/dashboard/<section>` renders workflow-scoped CRUD screens.
+4. `/swap` clears workflow context and returns the user to workflow selection.
 
 ### `models.py`
 
@@ -78,9 +87,10 @@ The package structure now centers on the `app/databases/` DAO modules. When upda
 The current route pattern is:
 
 - define endpoints on a Blueprint in `routes.py`
-- resolve the active DAO from the Flask app context
+- resolve the active DAO from the request context
 - call only methods defined on `BaseDAO`
 - handle the shared `(return_code, error_message, data)` response shape in the route layer
+- validate workflow-scoped relationships in the route layer before mutating dependent entities
 
 ## Development Guidance
 
@@ -88,3 +98,5 @@ The current route pattern is:
 - Add new database operations to `dao_base.py` first, then implement them in each backend.
 - Prefer using `current_app` inside routes and initialization helpers to avoid circular imports.
 - Keep templates, static assets, and persistence concerns separated by directory.
+- Preserve the current dashboard behavior where Roles, Guards, Interactions, and Interaction Components are scoped to `session['workflow_id']`.
+- Keep CSRF checks on server-rendered POST handlers and extend the existing test coverage in `tests/test_web_tier.py` when adding new form actions.

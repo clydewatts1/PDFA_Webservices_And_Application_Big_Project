@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Choose Workflow | PDFA{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-[linear-gradient(180deg,_#F8F9FA_0%,_#EEF2F6_100%)] px-6 py-16">
+    <div class="mx-auto max-w-[1000px]">
+        <div class="mb-10 text-center">
+            <p class="text-sm font-semibold uppercase tracking-[0.24em] text-primary">PDFA Workspace</p>
+            <h1 class="mt-3 text-4xl font-semibold text-ink">Choose a workflow</h1>
+            <p class="mt-3 text-base text-muted">You must select a workflow context to manage its components.</p>
+        </div>
+
+        {% if workflows %}
+            <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {% for workflow in workflows %}
+                    <form action="{{ url_for('main.set_context') }}" method="post" class="group">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="workflow_id" value="{{ workflow.workflow_id }}">
+                        <button type="submit" class="flex h-full w-full flex-col rounded-[20px] border border-divider bg-surface p-6 text-left shadow-google transition duration-200 hover:scale-[1.02] hover:shadow-raised">
+                            <div class="mb-5 flex items-center justify-between">
+                                <span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Workflow</span>
+                                <svg viewBox="0 0 24 24" class="h-5 w-5 text-muted transition group-hover:text-primary" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M5 12h14" />
+                                    <path d="m13 6 6 6-6 6" />
+                                </svg>
+                            </div>
+                            <h2 class="text-lg font-semibold text-ink">{{ workflow.workflow_name }}</h2>
+                            <p class="clamp-2 mt-3 text-sm leading-6 text-muted">{{ workflow.workflow_description or "No description provided yet." }}</p>
+                            <div class="mt-6 text-xs uppercase tracking-[0.18em] text-muted">{{ workflow.workflow_type }}{% if workflow.workflow_subtype %} / {{ workflow.workflow_subtype }}{% endif %}</div>
+                        </button>
+                    </form>
+                {% endfor %}
+            </div>
+
+            <div class="mt-10 rounded-[20px] border border-divider bg-surface p-8 shadow-google">
+                <div class="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-ink">Need a new workflow?</h2>
+                        <p class="mt-2 text-sm text-muted">Create one here and enter the dashboard with that workflow selected.</p>
+                    </div>
+                    <span class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Quick create</span>
+                </div>
+
+                <form action="{{ url_for('main.create_workflow_from_selection') }}" method="post" class="grid gap-4 md:grid-cols-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="md:col-span-2">
+                        <label for="workflow_name" class="mb-2 block text-sm font-medium text-muted">Workflow name</label>
+                        <input id="workflow_name" name="workflow_name" type="text" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="workflow_description" class="mb-2 block text-sm font-medium text-muted">Description</label>
+                        <textarea id="workflow_description" name="workflow_description" rows="4" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"></textarea>
+                    </div>
+                    <div>
+                        <label for="workflow_type" class="mb-2 block text-sm font-medium text-muted">Type</label>
+                        <input id="workflow_type" name="workflow_type" type="text" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                    </div>
+                    <div>
+                        <label for="workflow_subtype" class="mb-2 block text-sm font-medium text-muted">Subtype</label>
+                        <input id="workflow_subtype" name="workflow_subtype" type="text" value="Standard" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                    </div>
+                    <div class="md:col-span-2 flex justify-end pt-2">
+                        <button type="submit" class="inline-flex items-center justify-center rounded-google bg-primary px-6 py-3 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Create workflow</button>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+                <div class="rounded-[20px] border border-divider bg-surface p-10 shadow-google">
+                    <h2 class="text-xl font-semibold text-ink">No workflows available</h2>
+                    <p class="mt-3 text-sm leading-6 text-muted">Create your first workflow here. Once it is saved, PDFA will select it automatically and take you into the dashboard.</p>
+                </div>
+
+                <div class="rounded-[20px] border border-divider bg-surface p-8 shadow-google">
+                    <form action="{{ url_for('main.create_workflow_from_selection') }}" method="post" class="grid gap-4 md:grid-cols-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="md:col-span-2">
+                            <label for="workflow_name" class="mb-2 block text-sm font-medium text-muted">Workflow name</label>
+                            <input id="workflow_name" name="workflow_name" type="text" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="workflow_description" class="mb-2 block text-sm font-medium text-muted">Description</label>
+                            <textarea id="workflow_description" name="workflow_description" rows="4" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"></textarea>
+                        </div>
+                        <div>
+                            <label for="workflow_type" class="mb-2 block text-sm font-medium text-muted">Type</label>
+                            <input id="workflow_type" name="workflow_type" type="text" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                        </div>
+                        <div>
+                            <label for="workflow_subtype" class="mb-2 block text-sm font-medium text-muted">Subtype</label>
+                            <input id="workflow_subtype" name="workflow_subtype" type="text" value="Standard" class="w-full rounded-google border border-divider bg-surface px-4 py-3 text-[16px] text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
+                        </div>
+                        <div class="md:col-span-2 flex justify-end pt-2">
+                            <button type="submit" class="inline-flex items-center justify-center rounded-google bg-primary px-6 py-3 text-sm font-medium text-white shadow-google transition hover:bg-[#1967D2]">Create first workflow</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

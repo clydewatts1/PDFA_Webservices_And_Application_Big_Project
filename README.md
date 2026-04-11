@@ -2,32 +2,43 @@
 
 ## Development Guide
 
+This repository ships a Flask web tier backed by the DAO layer in `app/databases/`. The current web flow is:
+
+1. Sign in at `/login`.
+2. Choose or create a workflow at `/select-workflow`.
+3. Manage workflow-scoped entities in the dashboard sections for Workflows, Roles, Guards, Interactions, and Interaction Components.
+
+The Flask app uses request-scoped DAO instances stored on `flask.g`, while session state stores authentication and the active workflow context.
+
 ### Directory Structure
 
-A gemini prompt was used to get this directory structure.
-
-/my_flask_project
-├── .env                # Private credentials (GIT IGNORED)
-├── .env.example        # Template for others to see required keys
-├── .gitignore          # Must include: .env, __pycache__, *.pyc, instance/, local.db
-├── config.py           # Logic to switch between Laptop (SQLite) and PA (MySQL)
-├── requirements.txt    # List of packages (including cryptography & python-dotenv)
-├── run.py              # Simple entry point for local development
-│
-├── /app                # All your application code lives here
-│   ├── __init__.py     # Contains the "App Factory" (create_app function)
-│   ├── models.py       # Database schemas (SQLAlchemy or raw SQL classes)
-│   ├── routes.py       # Main URL routes
-│   │
-│   ├── /static         # CSS, JS, Images
-│   │   ├── /css
-│   │   └── /js
-│   │
-│   └── /templates      # HTML files
-│       ├── base.html
-│       └── index.html
-│
-└── /tests              # Unit and integration tests
+```text
+PDFA_Webservices_And_Application_Big_Project/
+├── app.py
+├── config.py
+├── requirements.txt
+├── run.py
+├── pytest.ini
+├── app/
+│   ├── __init__.py
+│   ├── routes.py
+│   ├── templates/
+│   │   ├── base.html
+│   │   ├── login.html
+│   │   ├── select_workflow.html
+│   │   └── dashboard.html
+│   ├── static/
+│   │   └── js/
+│   │       └── main.js
+│   └── databases/
+│       ├── dao_base.py
+│       ├── dao_mysql.py
+│       └── dao_sqllite.py
+└── tests/
+   ├── test_dao_shared.py
+   ├── test_hello_world.py
+   └── test_web_tier.py
+```
 
 ### Initial Setup
 
@@ -59,10 +70,37 @@ A gemini prompt was used to get this directory structure.
 4. Start the application:
 
    ```bash
-   python app.py
+   python -m flask --app app run
+   ```
+
+   Or use:
+
+   ```bash
+   python run.py
    ```
 
 For local development, prefer environment-backed credentials rather than editing `app.py`.
+
+### Web Tier Notes
+
+- Authentication is currently lightweight: any non-empty username and password are accepted for local development.
+- CSRF protection is enabled for server-rendered form posts using a session-backed token.
+- Workflow-scoped entities are filtered and validated server-side before create, update, and delete operations complete.
+- The dashboard search bar is visual only in the current phase.
+
+### Test Commands
+
+Run the non-sandbox suite:
+
+```bash
+python -m pytest -q
+```
+
+Run only the Flask web-tier coverage:
+
+```bash
+python -m pytest tests/test_web_tier.py -q
+```
 
 ## PythonAnywhere Deployment
 

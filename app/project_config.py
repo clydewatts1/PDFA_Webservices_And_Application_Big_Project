@@ -26,7 +26,10 @@ def _build_fallback_module(project_root: Path) -> SimpleNamespace:
 
     class DevelopmentConfig(Config):
         DEBUG = True
-        DB_URL = "sqlite:///local.db"
+        #DB_URL = "sqlite:///local.db"
+        # Placeholder values for local init
+        # Use memor for testing to avoid file permissions issues on PA
+        DB_URL = "sqlite:///:memory:"
         DB_HOST = "localhost"
         DB_USER = "root"
         DB_PASSWORD = ""
