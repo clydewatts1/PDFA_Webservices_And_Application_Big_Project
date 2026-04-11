@@ -490,6 +490,29 @@ def test_role_create_form_rejects_missing_csrf_token(client, flask_app):
     assert not [role for role in roles if role["role_name"] == "Rejected Reviewer"]
 
 
+def test_roles_dashboard_empty_state_uses_single_create_action(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Role Workflow",
+        "Workflow for role empty state",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.get("/dashboard/roles")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "No roles exist for the active workflow yet." in page
+    assert "Create Role" in page
+    assert "Create first role" not in page
+
+
 def test_guards_dashboard_empty_state_shows_create_affordance(client, flask_app):
     dao = _build_test_dao(flask_app)
     _, _, workflow_id = dao.insert_into_workflow_table(
@@ -508,7 +531,9 @@ def test_guards_dashboard_empty_state_shows_create_affordance(client, flask_app)
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Create first guard" in page
+    assert "No guards exist for the active workflow yet." in page
+    assert "Create Guard" in page
+    assert "Create first guard" not in page
 
 
 def test_guard_create_form_uses_active_workflow_scope(client, flask_app):
@@ -566,7 +591,9 @@ def test_interactions_dashboard_empty_state_shows_create_affordance(client, flas
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Create first interaction" in page
+    assert "No interactions exist for the active workflow yet." in page
+    assert "Create Interaction" in page
+    assert "Create first interaction" not in page
 
 
 def test_interaction_create_form_uses_active_workflow_scope(client, flask_app):
