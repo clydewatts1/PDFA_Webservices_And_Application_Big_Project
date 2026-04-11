@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+import re
 from secrets import token_urlsafe
 
 from flask import (
@@ -15,6 +17,7 @@ from flask import (
     session,
     url_for,
 )
+from markdown import markdown
 
 from app.databases.dao_base import BaseDAO
 from app.databases.dao_mysql import MySQLDatabase
@@ -55,6 +58,14 @@ _INTERACTION_COMPONENT_DIRECTIONS = {
     "outbound": "Outbound",
     "bidirectional": "Bidirectional",
 }
+_HELP_TOPIC_PATTERN = re.compile(r"^[a-z0-9-]+$")
+_HELP_SECTION_TOPICS = {
+    "workflows": "context-workflows",
+    "roles": "context-roles",
+    "guards": "context-guards",
+    "interactions": "context-interactions",
+    "interaction-components": "context-interaction-components",
+}
 
 
 def _route_context(**context: object) -> str:
@@ -70,7 +81,7 @@ def log_route_info(action: str, **context: object) -> None:
 
 def _is_api_request() -> bool:
     """Return True when the current request targets the JSON API surface."""
-    return request.path.startswith("/api/")
+    return request.path.startswith("/api/") or request.path.startswith("/help")
 
 
 def _coerce_int(value, default: int | None = None) -> int | None:
@@ -175,6 +186,65 @@ def _build_initials(username: str | None) -> str:
     if not parts:
         return username[:2].upper()
     return "".join(parts[:2])
+
+
+def _help_root() -> Path:
+    """Return the filesystem folder that stores markdown help content."""
+    return Path(current_app.root_path) / "help_content"
+
+
+def _help_topic_for_section(section: str | None) -> str:
+    """Map a dashboard section to its default help topic."""
+    if not section:
+        return "index"
+    return _HELP_SECTION_TOPICS.get(section, "index")
+
+
+def _help_title(topic: str) -> str:
+    """Return a human-friendly title for the resolved help topic."""
+    if topic == "index":
+        return "Help index"
+    if topic.startswith("context-"):
+        topic = topic.replace("context-", "", 1)
+    return topic.replace("-", " ").title()
+
+
+def _load_help_topic(topic: str | None) -> dict[str, object]:
+    """Load markdown help content safely from disk and render it to HTML."""
+    requested_topic = (topic or "index").strip().lower()
+    if not requested_topic:
+        requested_topic = "index"
+
+    if not _HELP_TOPIC_PATTERN.fullmatch(requested_topic):
+        raise FileNotFoundError("Invalid help topic.")
+
+    help_root = _help_root().resolve()
+    requested_path = (help_root / f"{requested_topic}.md").resolve()
+    fallback_path = (help_root / "index.md").resolve()
+
+    if help_root not in requested_path.parents and requested_path != help_root:
+        raise FileNotFoundError("Invalid help topic.")
+
+    resolved_topic = requested_topic
+    fallback_used = False
+    source_path = requested_path
+    if not source_path.exists() or not source_path.is_file():
+        source_path = fallback_path
+        resolved_topic = "index"
+        fallback_used = True
+
+    if not source_path.exists() or not source_path.is_file():
+        raise FileNotFoundError("Help content is not configured.")
+
+    markdown_text = source_path.read_text(encoding="utf-8")
+    rendered_html = markdown(markdown_text, extensions=["extra", "sane_lists"])
+    return {
+        "topic": requested_topic,
+        "resolved_topic": resolved_topic,
+        "title": _help_title(resolved_topic),
+        "html": rendered_html,
+        "fallback": fallback_used,
+    }
 
 
 def _csrf_token() -> str:
@@ -368,6 +438,7 @@ def _dashboard_context(section: str) -> dict[str, object]:
         "component_guard_options": [],
         "component_interaction_options": [],
         "component_direction_options": list(_INTERACTION_COMPONENT_DIRECTIONS.items()),
+        "help_topic": _help_topic_for_section(section),
         "drawer_section": section
         if section in {"workflows", "roles", "guards", "interactions", "interaction-components"}
         else None,
@@ -634,6 +705,19 @@ def dashboard_section(section: str):
     if not context:
         return redirect(url_for("main.select_workflow"))
     return render_template("dashboard.html", **context)
+
+
+@bp.route("/help")
+@bp.route("/help/<topic>")
+def help_topic(topic: str = "index"):
+    """Return rendered HTML for a help topic backed by markdown files on disk."""
+    try:
+        payload = _load_help_topic(topic)
+    except FileNotFoundError as err:
+        return json_error(str(err), 404, "help_topic")
+
+    log_route_info("help_topic:success", topic=payload["resolved_topic"])
+    return jsonify(payload)
 
 
 @bp.route("/dashboard/workflows/save", methods=["POST"])

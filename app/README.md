@@ -39,6 +39,8 @@ The Blueprint currently serves the login flow, workflow selection flow, dashboar
 - interactions
 - interaction components
 
+It also serves the signed-in `GET /help/<topic>` endpoint, which loads markdown files from `app/help_content/`, renders them to HTML, and feeds the dashboard Help drawer.
+
 The server-rendered flow is:
 
 1. `/login` establishes a lightweight authenticated session.

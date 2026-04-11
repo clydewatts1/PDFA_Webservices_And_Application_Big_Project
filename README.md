@@ -1,102 +1,53 @@
+# PDFA Webservices and Application
 
+The Flask web tier provides a workflow dashboard for managing workflows, roles, guards, interactions, and interaction components through a DAO-backed service layer.
 
-## Development Guide
+## Live Application
 
-This repository ships a Flask web tier backed by the DAO layer in `app/databases/`. The current web flow is:
+Use the deployed site at `https://clydewatts.pythonanywhere.com/`.
+
+## Quick Start
 
 1. Sign in at `/login`.
-2. Choose or create a workflow at `/select-workflow`.
-3. Manage workflow-scoped entities in the dashboard sections for Workflows, Roles, Guards, Interactions, and Interaction Components.
+2. Enter a username and password.
+3. Choose or create a workflow at `/select-workflow`.
+4. Manage workflow-scoped entities in the dashboard.
+5. Open the Help drawer in the header for context-sensitive guidance.
 
-The Flask app uses request-scoped DAO instances stored on `flask.g`, while session state stores authentication and the active workflow context.
+## Authentication Note
 
-### Directory Structure
+The sign-in form currently requires both username and password, but credentials are not yet validated against an identity provider. Any non-empty values are accepted.
+
+## Local Development
+
+1. Create a virtual environment and install dependencies.
+2. Copy `.env.example` to `.env`.
+3. Set the local SQLite configuration:
 
 ```text
-PDFA_Webservices_And_Application_Big_Project/
-├── app.py
-├── config.py
-├── requirements.txt
-├── run.py
-├── pytest.ini
-├── app/
-│   ├── __init__.py
-│   ├── routes.py
-│   ├── templates/
-│   │   ├── base.html
-│   │   ├── login.html
-│   │   ├── select_workflow.html
-│   │   └── dashboard.html
-│   ├── static/
-│   │   └── js/
-│   │       └── main.js
-│   └── databases/
-│       ├── dao_base.py
-│       ├── dao_mysql.py
-│       └── dao_sqllite.py
-└── tests/
-   ├── test_dao_shared.py
-   ├── test_hello_world.py
-   └── test_web_tier.py
+DB_BACKEND=sqlite
+DB_URL=sqlite:///local.db
 ```
 
-### Initial Setup
+4. Start the app with `python run.py`.
 
-1. Clone the repository:
+Relative SQLite URLs are resolved under the project root automatically, so `sqlite:///local.db` is safe to use locally and on PythonAnywhere.
 
-   ```bash
-   git clone https://github.com/clydewatts1/PDFA_Webservices_And_Application_Big_Project.git
-```
+## Application Flow
 
-2. Create environment and install dependencies:
+1. Sign in.
+2. Select or create a workflow.
+3. Use the dashboard sections for Workflows, Roles, Guards, Interactions, and Interaction Components.
+4. Use `Swap Workflow` to change context without signing out.
+5. Use `Log off` to clear the session.
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+## Documentation
 
-   The DAO prefers `mysql-connector-python` but can fall back to `PyMySQL` if the active Python environment cannot negotiate the configured MySQL authentication plugin.
+- [MANUAL.md](MANUAL.md) - end-user guide for sign-in, workflow selection, dashboard usage, and Help drawer behavior
+- [app/README.md](app/README.md) - Flask package architecture and DAO integration notes
+- [app/help_content/index.md](app/help_content/index.md) - in-app help content source files
 
-3. Configure database access before starting the Flask app:
-
-   ```bash
-   copy .env.example .env  # On PowerShell: Copy-Item .env.example .env
-   ```
-
-   `DB_BACKEND` controls which DAO backend is used. Supported values are `sqlite` and `mysql`.
-   On PythonAnywhere, the default remains `mysql`, but you can force SQLite for now with:
-
-   ```bash
-   DB_BACKEND=sqlite
-   DB_URL=sqlite:///local.db
-   ```
-
-   `DB_AUTH_PLUGIN` can be left blank for connector auto-negotiation.
-   If your MySQL 8 user uses `caching_sha2_password`, set `DB_AUTH_PLUGIN=caching_sha2_password`.
-
-4. Start the application:
-
-   ```bash
-   python -m flask --app app run
-   ```
-
-   Or use:
-
-   ```bash
-   python run.py
-   ```
-
-For local development, prefer environment-backed credentials rather than editing `app.py`.
-
-### Web Tier Notes
-
-- Authentication is currently lightweight: any non-empty username and password are accepted for local development.
-- CSRF protection is enabled for server-rendered form posts using a session-backed token.
-- Workflow-scoped entities are filtered and validated server-side before create, update, and delete operations complete.
-- The dashboard search bar is visual only in the current phase.
-
-### Test Commands
+## Testing
 
 Run the non-sandbox suite:
 
@@ -104,34 +55,19 @@ Run the non-sandbox suite:
 python -m pytest -q
 ```
 
-Run only the Flask web-tier coverage:
+Run only the Flask web-tier tests:
 
 ```bash
 python -m pytest tests/test_web_tier.py -q
 ```
 
-## PythonAnywhere Deployment
+## PythonAnywhere
 
-If the production deployment should use SQLite temporarily instead of MySQL, set these in the PythonAnywhere environment or project `.env` before reloading the web app:
+PythonAnywhere defaults to MySQL if no backend override is configured. To keep production on SQLite for now, set:
 
-```bash
+```text
 DB_BACKEND=sqlite
 DB_URL=sqlite:///local.db
 ```
 
-Relative SQLite URLs are resolved to an absolute path under the project root automatically, so `sqlite:///local.db` is safe to use without relying on the process working directory.
-
-1. Create a new web app on PythonAnywhere, choosing Flask and the appropriate Python version.
-1. Upload your project files to the PythonAnywhere file system, maintaining the directory structure.
-1. Set up a virtual environment on PythonAnywhere and install dependencies from `requirements.txt`.
-1. Configure the WSGI file to point to your Flask app. For example, if your Flask app is in `my_flask_project/app`, you would add:
-
-   ```python
-   import sys
-   path = '/home/yourusername/my_flask_project'
-   if path not in sys.path:
-       sys.path.insert(0, path)
-
-   from app import create_app
-   application = create_app()
-   ```
+If you later move back to MySQL, configure `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and optionally `DB_AUTH_PLUGIN`.

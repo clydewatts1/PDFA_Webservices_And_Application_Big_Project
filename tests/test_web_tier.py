@@ -219,6 +219,22 @@ def test_dashboard_shows_logoff_option_when_logged_in(client, flask_app):
     assert "/logout" in page
 
 
+def test_help_endpoint_requires_authentication(client):
+    response = client.get("/help/context-roles")
+
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Authentication required."}
+
+
+def test_help_endpoint_requires_workflow_context(client):
+    _login(client)
+
+    response = client.get("/help/context-roles")
+
+    assert response.status_code == 428
+    assert response.get_json() == {"error": "Workflow context required."}
+
+
 def test_create_workflow_from_selection_sets_context_and_redirects(client):
     _login(client)
 
@@ -240,6 +256,28 @@ def test_create_workflow_from_selection_sets_context_and_redirects(client):
     with client.session_transaction() as session_state:
         assert session_state["workflow_name"] == "First Workflow"
         assert session_state["workflow_id"] is not None
+
+
+def test_dashboard_exposes_context_help_topic_for_active_section(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Help Workflow",
+        "Workflow for help topic rendering",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.get("/dashboard/roles")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'data-help-open' in page
+    assert 'data-help-topic="context-roles"' in page
 
 
 def test_swap_workflow_clears_active_context_and_redirects(client, flask_app):
@@ -264,6 +302,74 @@ def test_swap_workflow_clears_active_context_and_redirects(client, flask_app):
     with client.session_transaction() as session_state:
         assert "workflow_id" not in session_state
         assert "workflow_name" not in session_state
+
+
+def test_help_endpoint_returns_rendered_html_for_known_topic(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Known Help Workflow",
+        "Workflow for known help topic",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.get("/help/context-roles")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["topic"] == "context-roles"
+    assert payload["resolved_topic"] == "context-roles"
+    assert payload["fallback"] is False
+    assert "<h1>Roles</h1>" in payload["html"]
+
+
+def test_help_endpoint_falls_back_to_index_for_missing_topic(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Fallback Help Workflow",
+        "Workflow for help fallback",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.get("/help/context-missing-topic")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["topic"] == "context-missing-topic"
+    assert payload["resolved_topic"] == "index"
+    assert payload["fallback"] is True
+    assert "<h1>PDFA Help</h1>" in payload["html"]
+
+
+def test_help_endpoint_rejects_invalid_topic(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Invalid Help Workflow",
+        "Workflow for invalid help topic",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.get("/help/..")
+
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Invalid help topic."}
 
 
 def test_logout_clears_session_and_redirects_to_login(client):
