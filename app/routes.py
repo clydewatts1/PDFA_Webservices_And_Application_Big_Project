@@ -961,19 +961,17 @@ def save_interaction_form():
     if workflow_id is None:
         return redirect(url_for("main.select_workflow"))
 
-    interaction_id = _coerce_int(request.form.get("interaction_id"))
     interaction_id_original = _coerce_int(request.form.get("interaction_id_original"))
     interaction_name = (request.form.get("interaction_name") or "").strip()
 
-    if interaction_id is None or not interaction_name:
-        flash("Interaction ID and name are required.", "error")
+    if not interaction_name:
+        flash("Interaction name is required.", "error")
         return redirect(url_for("main.dashboard_section", section="interactions"))
 
     db_provider = get_db_provider()
     username = session.get("username", "PDFA User")
     if interaction_id_original is None:
         code, err, new_id = db_provider.insert_into_interaction_table(
-            interaction_id=interaction_id,
             workflow_id=workflow_id,
             interaction_name=interaction_name,
             created_by=username,
@@ -1394,13 +1392,11 @@ def create_interaction():
     payload = get_json_payload()
     log_route_info(
         f"{action}:start",
-        interaction_id=payload.get("interaction_id"),
         workflow_id=payload.get("workflow_id"),
     )
 
     db_provider = get_db_provider()
     code, err, new_id = db_provider.insert_into_interaction_table(
-        interaction_id=payload.get("interaction_id"),
         workflow_id=payload.get("workflow_id"),
         interaction_name=payload.get("name"),
         created_by=payload.get("user"),

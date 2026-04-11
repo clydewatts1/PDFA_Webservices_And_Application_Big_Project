@@ -613,7 +613,6 @@ def test_interaction_create_form_uses_active_workflow_scope(client, flask_app):
         "/dashboard/interactions/save",
         data={
             "csrf_token": _session_csrf(client),
-            "interaction_id": 1001,
             "interaction_name": "Escalation Path",
         },
         follow_redirects=False,
@@ -674,14 +673,14 @@ def test_interaction_components_dashboard_only_shows_active_workflow_data(client
     _, _, role_b = dao.insert_into_role_table(workflow_b, "Reviewer B", "", "Human", "Primary", "tester")
     _, _, guard_a = dao.insert_into_guard_table(workflow_a, "Guard A", "", "Policy", "Default", "tester")
     _, _, guard_b = dao.insert_into_guard_table(workflow_b, "Guard B", "", "Policy", "Default", "tester")
-    dao.insert_into_interaction_table(2001, workflow_a, "Interaction A", "tester")
-    dao.insert_into_interaction_table(2002, workflow_b, "Interaction B", "tester")
+    _, _, interaction_a = dao.insert_into_interaction_table(workflow_a, "Interaction A", "tester")
+    _, _, interaction_b = dao.insert_into_interaction_table(workflow_b, "Interaction B", "tester")
     dao.insert_into_interaction_component_table(
         "Component A",
         "Visible component",
         "Notification",
         "Email",
-        2001,
+        interaction_a,
         guard_a,
         role_a,
         "outbound",
@@ -692,7 +691,7 @@ def test_interaction_components_dashboard_only_shows_active_workflow_data(client
         "Hidden component",
         "Notification",
         "SMS",
-        2002,
+        interaction_b,
         guard_b,
         role_b,
         "inbound",
@@ -728,7 +727,7 @@ def test_interaction_component_create_form_uses_active_workflow_scope(client, fl
     )
     _, _, role_id = dao.insert_into_role_table(workflow_id, "Reviewer", "", "Human", "Primary", "tester")
     _, _, guard_id = dao.insert_into_guard_table(workflow_id, "Approval Gate", "", "Policy", "Default", "tester")
-    dao.insert_into_interaction_table(3001, workflow_id, "Escalation Path", "tester")
+    _, _, interaction_id = dao.insert_into_interaction_table(workflow_id, "Escalation Path", "tester")
     dao.close()
 
     _login(client)
@@ -741,7 +740,7 @@ def test_interaction_component_create_form_uses_active_workflow_scope(client, fl
             "interaction_component_description": "Sends an outbound update",
             "interaction_component_type": "Notification",
             "interaction_component_subtype": "Email",
-            "interaction_id": 3001,
+            "interaction_id": interaction_id,
             "role_id": role_id,
             "guard_id": guard_id,
             "direction": "outbound",
@@ -761,7 +760,7 @@ def test_interaction_component_create_form_uses_active_workflow_scope(client, fl
     ]
     assert len(matching_components) == 1
     assert matching_components[0]["workflow_id"] == workflow_id
-    assert matching_components[0]["interaction_id"] == 3001
+    assert matching_components[0]["interaction_id"] == interaction_id
     assert matching_components[0]["role_id"] == role_id
     assert matching_components[0]["guard_id"] == guard_id
 
@@ -782,7 +781,7 @@ def test_interaction_component_create_rejects_cross_workflow_relationships(clien
         "Primary",
         "tester",
     )
-    dao.insert_into_interaction_table(4001, workflow_a, "Interaction A", "tester")
+    _, _, interaction_id = dao.insert_into_interaction_table(workflow_a, "Interaction A", "tester")
     _, _, role_b = dao.insert_into_role_table(workflow_b, "Role B", "", "Human", "Primary", "tester")
     _, _, guard_b = dao.insert_into_guard_table(workflow_b, "Guard B", "", "Policy", "Default", "tester")
     dao.close()
@@ -797,7 +796,7 @@ def test_interaction_component_create_rejects_cross_workflow_relationships(clien
             "interaction_component_description": "Should be rejected",
             "interaction_component_type": "Notification",
             "interaction_component_subtype": "Email",
-            "interaction_id": 4001,
+            "interaction_id": interaction_id,
             "role_id": role_b,
             "guard_id": guard_b,
             "direction": "outbound",
@@ -825,7 +824,7 @@ def test_interaction_component_create_rejects_missing_csrf_token(client, flask_a
         "Primary",
         "tester",
     )
-    dao.insert_into_interaction_table(5001, workflow_id, "Component CSRF Interaction", "tester")
+    _, _, interaction_id = dao.insert_into_interaction_table(workflow_id, "Component CSRF Interaction", "tester")
     dao.close()
 
     _login(client)
@@ -837,7 +836,7 @@ def test_interaction_component_create_rejects_missing_csrf_token(client, flask_a
             "interaction_component_description": "Should not be created",
             "interaction_component_type": "Notification",
             "interaction_component_subtype": "Email",
-            "interaction_id": 5001,
+            "interaction_id": interaction_id,
             "direction": "outbound",
         },
         follow_redirects=True,

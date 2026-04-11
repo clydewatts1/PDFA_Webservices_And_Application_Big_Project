@@ -107,9 +107,6 @@ function resetInteractionDrawer() {
 
     interactionForm.reset();
     document.getElementById("interaction_id_original").value = "";
-    const interactionIdField = document.getElementById("interaction_id");
-    interactionIdField.readOnly = false;
-    interactionIdField.classList.remove("bg-canvas");
     drawerEyebrow.textContent = "Create interaction";
     drawerTitle.textContent = "Create interaction";
 }
@@ -295,10 +292,6 @@ function openDrawer(kind, dataset = {}) {
             drawerEyebrow.textContent = "Update interaction";
             drawerTitle.textContent = `Edit interaction #${dataset.interactionId}`;
             document.getElementById("interaction_id_original").value = dataset.interactionId || "";
-            const interactionIdField = document.getElementById("interaction_id");
-            interactionIdField.value = dataset.interactionId || "";
-            interactionIdField.readOnly = true;
-            interactionIdField.classList.add("bg-canvas");
             document.getElementById("interaction_name").value = dataset.interactionName || "";
         }
     }

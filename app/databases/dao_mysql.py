@@ -1068,7 +1068,7 @@ class MySQLDatabase(BaseDAO):
     def create_interaction_table(self) -> tuple[int, str, None]:
         """Creates interaction table if it does not exits in the specified database."""
         columns = {
-            "interaction_id": "INT NOT NULL",
+            "interaction_id": "INT PRIMARY KEY AUTO_INCREMENT",
             "workflow_id": "INT NOT NULL",
             "interaction_name": "VARCHAR(255) NOT NULL",
             "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
@@ -1115,18 +1115,17 @@ class MySQLDatabase(BaseDAO):
         return 0, None, None
 
 
-    def insert_into_interaction_table(self, interaction_id:int, workflow_id:int, interaction_name:str, created_by:str) -> tuple[int, str, None]:
+    def insert_into_interaction_table(self, workflow_id:int, interaction_name:str, created_by:str) -> tuple[int, str, None]:
         """Inserts a new interaction into the interaction table.
         Args:
-            interaction_id (int): ID of the interaction to be inserted.
             workflow_id (int): ID of the workflow to which the interaction belongs.
             interaction_name (str): Name of the interaction.
             created_by (str): Name of the user who created the interaction.
         Returns:
-            tuple: (return_code, error_message, None)
+            tuple: (return_code, error_message, inserted_interaction_id)
                 return_code (bool): True if interaction is inserted successfully, False otherwise.
                 error_message (str): Error message if interaction insertion fails, None otherwise.
-                None: Always None.
+                inserted_interaction_id (int): ID of the inserted interaction if insertion is successful, None otherwise.
         """
         connection_code, connection_error, _ = self.ensure_connection()
         if not connection_code:
@@ -1134,18 +1133,19 @@ class MySQLDatabase(BaseDAO):
         cursor = self.connection.cursor()
         try:
             cursor.execute(f"USE {self.dbname}")
-            insert_sql = "INSERT INTO interaction_components (interaction_id, workflow_id, interaction_name, created_by) VALUES (%s, %s, %s, %s)"
-            values = (interaction_id, workflow_id, interaction_name, created_by)
+            insert_sql = "INSERT INTO interaction_components (workflow_id, interaction_name, created_by) VALUES (%s, %s, %s)"
+            values = (workflow_id, interaction_name, created_by)
             logging.info(f"[*] Executing SQL statement: {insert_sql} with values {values}")
             cursor.execute(insert_sql, values)
+            inserted_interaction_id = cursor.lastrowid
             self.connection.commit()
-            logging.info(f"[*] Interaction with ID '{interaction_id}' inserted successfully into table 'interaction_components'.")
+            logging.info(f"[*] Interaction '{interaction_name}' inserted successfully into table 'interaction_components' with ID {inserted_interaction_id}.")
         except Errors.Error as err:
             logging.error(f"[!] Error inserting data: {err}")
             return -1, str(err), None
         finally:
             cursor.close()
-        return 0, None, None
+        return 0, None, inserted_interaction_id
 
     def update_interaction_table(self, interaction_id:int, workflow_id:int, interaction_name:str, updated_by:str) -> tuple[int, str, None]:
         """Updates an existing interaction in the interaction table.

@@ -541,7 +541,7 @@ class SQLiteDatabase(BaseDAO):
 			return -1, workflow_error, None
 
 		columns = {
-			"interaction_id": "INTEGER PRIMARY KEY",
+			"interaction_id": "INTEGER PRIMARY KEY AUTOINCREMENT",
 			"workflow_id": "INTEGER NOT NULL",
 			"interaction_name": "TEXT NOT NULL",
 			"created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
@@ -562,7 +562,6 @@ class SQLiteDatabase(BaseDAO):
 
 	def insert_into_interaction_table(
 		self,
-		interaction_id: int,
 		workflow_id: int,
 		interaction_name: str,
 		created_by: str,
@@ -571,7 +570,6 @@ class SQLiteDatabase(BaseDAO):
 		return self._insert_row(
 			"interaction_components",
 			{
-				"interaction_id": interaction_id,
 				"workflow_id": workflow_id,
 				"interaction_name": interaction_name,
 				"created_by": created_by,

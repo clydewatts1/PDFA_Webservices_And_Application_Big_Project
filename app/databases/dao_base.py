@@ -246,7 +246,6 @@ class BaseDAO(ABC):
     @abstractmethod
     def insert_into_interaction_table(
         self,
-        interaction_id: int,
         workflow_id: int,
         interaction_name: str,
         created_by: str,
