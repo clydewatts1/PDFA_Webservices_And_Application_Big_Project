@@ -1387,6 +1387,7 @@ class MySQLDatabase(BaseDAO):
                 error_message (str): Error message if interaction component insertion fails, None otherwise.
                 None: Always None.
         """
+        last_inserted_id = None
         connection_code, connection_error, _ = self.ensure_connection()
         if not connection_code:
             return -1, connection_error, None
@@ -1397,9 +1398,10 @@ class MySQLDatabase(BaseDAO):
             values = (interaction_component_name, interaction_component_description, interaction_component_type, interaction_component_subtype, interaction_id, guard_id, role_id, direction, created_by)
             logging.info(f"[*] Executing SQL statement: {insert_sql} with values {values}")
             cursor.execute(insert_sql, values)
+            last_inserted_id = cursor.lastrowid
             self.connection.commit()
             logging.info(f"[*] Interaction component '{interaction_component_name}' inserted successfully into table 'interaction_component'.")
-            return 0, None, None
+            return 0, None, last_inserted_id
         except Errors.Error as err:
             logging.error(f"[!] Error inserting interaction component '{interaction_component_name}': {err}")
             return -1, str(err), None
@@ -1437,7 +1439,7 @@ class MySQLDatabase(BaseDAO):
             cursor.execute(update_sql, values)
             self.connection.commit()
             logging.info(f"[*] Interaction component with ID '{interaction_component_id}' updated successfully in table 'interaction_component'.")
-            return 0, None, None
+            return 0, None, interaction_component_id
         except Errors.Error as err:
             logging.error(f"[!] Error updating interaction component with ID '{interaction_component_id}': {err}")
             return -1, str(err), None

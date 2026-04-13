@@ -119,7 +119,7 @@
 
                 <div class="overflow-x-auto">
                     {% if active_section == 'workflows' %}
-                        <table class="min-w-full text-left text-[14px]">
+                        <table id="workflows-table" class="min-w-full text-left text-[14px]">
                             <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Name</th>
@@ -129,9 +129,9 @@
                                     <th class="px-6 py-3 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="workflows-table-body">
                                 {% for workflow in workflows %}
-                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                    <tr data-workflow-row-id="{{ workflow.workflow_id }}" class="group border-b border-divider/70 last:border-b-0">
                                         <td class="px-6 py-4 font-medium text-ink">{{ workflow.workflow_name }}</td>
                                         <td class="px-6 py-4 text-muted"><span class="clamp-2">{{ workflow.workflow_description or "-" }}</span></td>
                                         <td class="px-6 py-4 text-muted">{{ workflow.workflow_type }}{% if workflow.workflow_subtype %} / {{ workflow.workflow_subtype }}{% endif %}</td>
@@ -151,12 +151,12 @@
                                         </td>
                                     </tr>
                                 {% else %}
-                                    <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-muted">No workflows available yet.</td></tr>
+                                    <tr data-workflow-empty-row><td colspan="5" class="px-6 py-12 text-center text-sm text-muted">No workflows available yet.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     {% elif active_section == 'roles' %}
-                        <table class="min-w-full text-left text-[14px]">
+                        <table id="roles-table" class="min-w-full text-left text-[14px]">
                             <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Role</th>
@@ -166,9 +166,9 @@
                                     <th class="px-6 py-3 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="roles-table-body">
                                 {% for role in roles %}
-                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                    <tr data-role-row-id="{{ role.role_id }}" class="group border-b border-divider/70 last:border-b-0">
                                         <td class="px-6 py-4 font-medium text-ink">{{ role.role_name }}</td>
                                         <td class="px-6 py-4 text-muted"><span class="clamp-2">{{ role.role_description or "-" }}</span></td>
                                         <td class="px-6 py-4 text-muted">{{ role.role_type }}{% if role.role_subtype %} / {{ role.role_subtype }}{% endif %}</td>
@@ -188,7 +188,7 @@
                                         </td>
                                     </tr>
                                 {% else %}
-                                    <tr>
+                                    <tr data-role-empty-row>
                                         <td colspan="5" class="px-6 py-12 text-center text-sm text-muted">
                                             <p>No roles exist for the active workflow yet.</p>
                                         </td>
@@ -197,7 +197,7 @@
                             </tbody>
                         </table>
                     {% elif active_section == 'guards' %}
-                        <table class="min-w-full text-left text-[14px]">
+                        <table id="guards-table" class="min-w-full text-left text-[14px]">
                             <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Guard</th>
@@ -207,9 +207,9 @@
                                     <th class="px-6 py-3 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="guards-table-body">
                                 {% for guard in guards %}
-                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                    <tr data-guard-row-id="{{ guard.guard_id }}" class="group border-b border-divider/70 last:border-b-0">
                                         <td class="px-6 py-4 font-medium text-ink">{{ guard.guard_name }}</td>
                                         <td class="px-6 py-4 text-muted"><span class="clamp-2">{{ guard.guard_description or '-' }}</span></td>
                                         <td class="px-6 py-4 text-muted">{{ guard.guard_type }}{% if guard.guard_subtype %} / {{ guard.guard_subtype }}{% endif %}</td>
@@ -229,7 +229,7 @@
                                         </td>
                                     </tr>
                                 {% else %}
-                                    <tr>
+                                    <tr data-guard-empty-row>
                                         <td colspan="5" class="px-6 py-12 text-center text-sm text-muted">
                                             <p>No guards exist for the active workflow yet.</p>
                                         </td>
@@ -238,7 +238,7 @@
                             </tbody>
                         </table>
                     {% elif active_section == 'interactions' %}
-                        <table class="min-w-full text-left text-[14px]">
+                        <table id="interactions-table" class="min-w-full text-left text-[14px]">
                             <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Interaction ID</th>
@@ -248,9 +248,9 @@
                                     <th class="px-6 py-3 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="interactions-table-body" data-active-workflow-name="{{ active_workflow.workflow_name }}">
                                 {% for interaction in interactions %}
-                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                    <tr data-interaction-row-id="{{ interaction.interaction_id }}" class="group border-b border-divider/70 last:border-b-0">
                                         <td class="px-6 py-4 font-medium text-ink">{{ interaction.interaction_id }}</td>
                                         <td class="px-6 py-4 text-muted">{{ interaction.interaction_name }}</td>
                                         <td class="px-6 py-4 text-muted">{{ active_workflow.workflow_name }}</td>
@@ -270,7 +270,7 @@
                                         </td>
                                     </tr>
                                 {% else %}
-                                    <tr>
+                                    <tr data-interaction-empty-row>
                                         <td colspan="5" class="px-6 py-12 text-center text-sm text-muted">
                                             <p>No interactions exist for the active workflow yet.</p>
                                         </td>
@@ -279,7 +279,7 @@
                             </tbody>
                         </table>
                     {% elif active_section == 'interaction-components' %}
-                        <table class="min-w-full text-left text-[14px]">
+                        <table id="interaction-components-table" class="min-w-full text-left text-[14px]">
                             <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Component</th>
@@ -291,9 +291,9 @@
                                     <th class="px-6 py-3 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="interaction-components-table-body">
                                 {% for component in interaction_components %}
-                                    <tr class="group border-b border-divider/70 last:border-b-0">
+                                    <tr data-interaction-component-row-id="{{ component.interaction_component_id }}" class="group border-b border-divider/70 last:border-b-0">
                                         <td class="px-6 py-4">
                                             <div class="font-medium text-ink">{{ component.interaction_component_name }}</div>
                                             <div class="mt-1 text-muted"><span class="clamp-2">{{ component.interaction_component_description or '-' }}</span></div>
@@ -321,7 +321,7 @@
                                         </td>
                                     </tr>
                                 {% else %}
-                                    <tr>
+                                    <tr data-interaction-component-empty-row>
                                         <td colspan="7" class="px-6 py-12 text-center text-sm text-muted">
                                             <div class="flex flex-col items-center gap-3">
                                                 <p>No interaction components exist for the active workflow yet.</p>
@@ -522,6 +522,8 @@
         </div>
     </aside>
 </div>
+
+<div id="ajax-toast-host" class="pointer-events-none fixed bottom-6 right-6 z-[90] flex w-[min(26rem,calc(100vw-3rem))] flex-col gap-3"></div>
 {% endblock %}
 
 {% block scripts %}

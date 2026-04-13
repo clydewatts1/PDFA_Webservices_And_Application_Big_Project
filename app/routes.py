@@ -178,6 +178,32 @@ def _enriched_interaction_components(
     return enriched_rows
 
 
+def _enriched_interaction_component(
+    db_provider: BaseDAO,
+    component: dict,
+    workflow_id: int,
+) -> dict | None:
+    """Return one interaction component enriched for dashboard rendering."""
+    interaction_code, _, interactions = db_provider.select_all_from_interaction_table()
+    role_code, _, roles = db_provider.select_all_from_role_table()
+    guard_code, _, guards = db_provider.select_all_from_guard_table()
+
+    scoped_interactions = _workflow_scoped_rows(_safe_collection(interaction_code, interactions), workflow_id)
+    scoped_roles = _workflow_scoped_rows(_safe_collection(role_code, roles), workflow_id)
+    scoped_guards = _workflow_scoped_rows(_safe_collection(guard_code, guards), workflow_id)
+    enriched_rows = _enriched_interaction_components(
+        db_provider,
+        [component],
+        scoped_interactions,
+        scoped_roles,
+        scoped_guards,
+        workflow_id,
+    )
+    if not enriched_rows:
+        return None
+    return enriched_rows[0]
+
+
 def _build_initials(username: str | None) -> str:
     """Return up to two initials for the current username."""
     if not username:
@@ -257,11 +283,20 @@ def _csrf_token() -> str:
 
 
 def _require_csrf() -> bool:
-    """Validate the session-backed CSRF token for mutating form posts."""
+    """Validate the session-backed CSRF token for mutating form and JSON requests."""
     expected = session.get("csrf_token")
     actual = request.form.get("csrf_token")
+    if not actual:
+        actual = request.headers.get("X-CSRF-Token") or request.headers.get("X-CSRFToken")
+    if not actual:
+        payload = request.get_json(silent=True) or {}
+        actual = payload.get("csrf_token")
+
     if expected and actual and expected == actual:
         return True
+
+    if _is_api_request():
+        return False
 
     flash("Your session token expired. Please try again.", "error")
     return False
@@ -1152,8 +1187,11 @@ def get_workflow(workflow_id: int):
 
 @bp.route("/api/workflows", methods=["POST"])
 def create_workflow():
-    """Create a workflow from a JSON payload and return the new identifier."""
+    """Create a workflow from a JSON payload and return the created workflow object."""
     action = "create_workflow"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
     log_route_info(f"{action}:start", workflow_name=payload.get("name"), workflow_type=payload.get("type"))
 
@@ -1163,17 +1201,24 @@ def create_workflow():
         workflow_description=payload.get("description"),
         workflow_type=payload.get("type"),
         workflow_subtype=payload.get("subtype"),
-        created_by=payload.get("user"),
+        created_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    code, err, workflow = db_provider.select_from_workflow_table(new_id)
     if code == 0:
-        return json_success({"id": new_id, "status": "created"}, action, 201)
+        return json_success(workflow, action, 201)
     return json_error(err, 500, action)
 
 
 @bp.route("/api/workflows/<int:workflow_id>", methods=["PUT"])
 def update_workflow(workflow_id: int):
-    """Update a workflow from a JSON payload and return its identifier."""
+    """Update a workflow from a JSON payload and return the updated workflow object."""
     action = "update_workflow"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
     log_route_info(f"{action}:start", workflow_id=workflow_id, workflow_name=payload.get("name"))
 
@@ -1184,10 +1229,17 @@ def update_workflow(workflow_id: int):
         workflow_description=payload.get("description"),
         workflow_type=payload.get("type"),
         workflow_subtype=payload.get("subtype"),
-        updated_by=payload.get("user"),
+        updated_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    if _coerce_int(session.get("workflow_id")) == workflow_id:
+        session["workflow_name"] = payload.get("name")
+
+    code, err, workflow = db_provider.select_from_workflow_table(updated_id)
     if code == 0:
-        return json_success({"id": updated_id, "status": "updated"}, action)
+        return json_success(workflow, action)
     return json_error(err, 500, action)
 
 
@@ -1229,44 +1281,72 @@ def get_role(role_id: int):
 
 @bp.route("/api/roles", methods=["POST"])
 def create_role():
-    """Create a role from a JSON payload and return the new identifier."""
+    """Create a role from a JSON payload and return the created role object."""
     action = "create_role"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
-    log_route_info(f"{action}:start", workspace_id=payload.get("workspace_id"), role_name=payload.get("name"))
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
+    log_route_info(f"{action}:start", workspace_id=workflow_id, role_name=payload.get("name"))
 
     db_provider = get_db_provider()
     code, err, new_id = db_provider.insert_into_role_table(
-        workspace_id=payload.get("workspace_id"),
+        workspace_id=workflow_id,
         role_name=payload.get("name"),
         role_description=payload.get("description"),
         role_type=payload.get("type"),
         role_subtype=payload.get("subtype"),
-        created_by=payload.get("user"),
+        created_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    code, err, role = db_provider.select_from_role_table(new_id)
     if code == 0:
-        return json_success({"id": new_id, "status": "created"}, action, 201)
+        return json_success(role, action, 201)
     return json_error(err, 500, action)
 
 
 @bp.route("/api/roles/<int:role_id>", methods=["PUT"])
 def update_role(role_id: int):
-    """Update a role from a JSON payload and return its identifier."""
+    """Update a role from a JSON payload and return the updated role object."""
     action = "update_role"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
-    log_route_info(f"{action}:start", role_id=role_id, workspace_id=payload.get("workspace_id"))
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
+    log_route_info(f"{action}:start", role_id=role_id, workspace_id=workflow_id)
 
     db_provider = get_db_provider()
+    code, err, current_role = db_provider.select_from_role_table(role_id)
+    if code != 0:
+        return json_error(err, 404, action)
+    if _coerce_int(current_role.get("workspace_id")) != workflow_id:
+        return json_error("That role does not belong to the active workflow.", 403, action)
+
     code, err, updated_id = db_provider.update_role_table(
         role_id=role_id,
-        workspace_id=payload.get("workspace_id"),
+        workspace_id=workflow_id,
         role_name=payload.get("name"),
         role_description=payload.get("description"),
         role_type=payload.get("type"),
         role_subtype=payload.get("subtype"),
-        updated_by=payload.get("user"),
+        updated_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    code, err, role = db_provider.select_from_role_table(updated_id)
     if code == 0:
-        return json_success({"id": updated_id, "status": "updated"}, action)
+        return json_success(role, action)
     return json_error(err, 500, action)
 
 
@@ -1308,44 +1388,72 @@ def get_guard(guard_id: int):
 
 @bp.route("/api/guards", methods=["POST"])
 def create_guard():
-    """Create a guard from a JSON payload and return the new identifier."""
+    """Create a guard from a JSON payload and return the created guard object."""
     action = "create_guard"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
-    log_route_info(f"{action}:start", workspace_id=payload.get("workspace_id"), guard_name=payload.get("name"))
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
+    log_route_info(f"{action}:start", workspace_id=workflow_id, guard_name=payload.get("name"))
 
     db_provider = get_db_provider()
     code, err, new_id = db_provider.insert_into_guard_table(
-        workspace_id=payload.get("workspace_id"),
+        workspace_id=workflow_id,
         guard_name=payload.get("name"),
         guard_description=payload.get("description"),
         guard_type=payload.get("type"),
         guard_subtype=payload.get("subtype"),
-        created_by=payload.get("user"),
+        created_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    code, err, guard = db_provider.select_from_guard_table(new_id)
     if code == 0:
-        return json_success({"id": new_id, "status": "created"}, action, 201)
+        return json_success(guard, action, 201)
     return json_error(err, 500, action)
 
 
 @bp.route("/api/guards/<int:guard_id>", methods=["PUT"])
 def update_guard(guard_id: int):
-    """Update a guard from a JSON payload and return its identifier."""
+    """Update a guard from a JSON payload and return the updated guard object."""
     action = "update_guard"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
-    log_route_info(f"{action}:start", guard_id=guard_id, workspace_id=payload.get("workspace_id"))
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
+    log_route_info(f"{action}:start", guard_id=guard_id, workspace_id=workflow_id)
 
     db_provider = get_db_provider()
+    code, err, current_guard = db_provider.select_from_guard_table(guard_id)
+    if code != 0:
+        return json_error(err, 404, action)
+    if _coerce_int(current_guard.get("workspace_id")) != workflow_id:
+        return json_error("That guard does not belong to the active workflow.", 403, action)
+
     code, err, updated_id = db_provider.update_guard_table(
         guard_id=guard_id,
-        workspace_id=payload.get("workspace_id"),
+        workspace_id=workflow_id,
         guard_name=payload.get("name"),
         guard_description=payload.get("description"),
         guard_type=payload.get("type"),
         guard_subtype=payload.get("subtype"),
-        updated_by=payload.get("user"),
+        updated_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    code, err, guard = db_provider.select_from_guard_table(updated_id)
     if code == 0:
-        return json_success({"id": updated_id, "status": "updated"}, action)
+        return json_success(guard, action)
     return json_error(err, 500, action)
 
 
@@ -1387,41 +1495,69 @@ def get_interaction(interaction_id: int):
 
 @bp.route("/api/interactions", methods=["POST"])
 def create_interaction():
-    """Create an interaction from a JSON payload and return the new identifier."""
+    """Create an interaction from a JSON payload and return the created interaction object."""
     action = "create_interaction"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
     log_route_info(
         f"{action}:start",
-        workflow_id=payload.get("workflow_id"),
+        workflow_id=workflow_id,
     )
 
     db_provider = get_db_provider()
     code, err, new_id = db_provider.insert_into_interaction_table(
-        workflow_id=payload.get("workflow_id"),
+        workflow_id=workflow_id,
         interaction_name=payload.get("name"),
-        created_by=payload.get("user"),
+        created_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    code, err, interaction = db_provider.select_from_interaction_table(new_id)
     if code == 0:
-        return json_success({"id": new_id, "status": "created"}, action, 201)
+        return json_success(interaction, action, 201)
     return json_error(err, 500, action)
 
 
 @bp.route("/api/interactions/<int:interaction_id>", methods=["PUT"])
 def update_interaction(interaction_id: int):
-    """Update an interaction from a JSON payload and return its identifier."""
+    """Update an interaction from a JSON payload and return the updated interaction object."""
     action = "update_interaction"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
-    log_route_info(f"{action}:start", interaction_id=interaction_id, workflow_id=payload.get("workflow_id"))
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
+    log_route_info(f"{action}:start", interaction_id=interaction_id, workflow_id=workflow_id)
 
     db_provider = get_db_provider()
+    code, err, current_interaction = db_provider.select_from_interaction_table(interaction_id)
+    if code != 0:
+        return json_error(err, 404, action)
+    if _coerce_int(current_interaction.get("workflow_id")) != workflow_id:
+        return json_error("That interaction does not belong to the active workflow.", 403, action)
+
     code, err, updated_id = db_provider.update_interaction_table(
         interaction_id=interaction_id,
-        workflow_id=payload.get("workflow_id"),
+        workflow_id=workflow_id,
         interaction_name=payload.get("name"),
-        updated_by=payload.get("user"),
+        updated_by=session.get("username", "PDFA User"),
     )
+    if code != 0:
+        return json_error(err, 500, action)
+
+    code, err, interaction = db_provider.select_from_interaction_table(updated_id)
     if code == 0:
-        return json_success({"id": updated_id, "status": "updated"}, action)
+        return json_success(interaction, action)
     return json_error(err, 500, action)
 
 
@@ -1463,60 +1599,173 @@ def get_interaction_component(interaction_component_id: int):
 
 @bp.route("/api/interaction-components", methods=["POST"])
 def create_interaction_component():
-    """Create an interaction component from a JSON payload and return the new identifier."""
+    """Create an interaction component from a JSON payload and return the created object."""
     action = "create_interaction_component"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
+    interaction_component_name = (payload.get("name") or "").strip()
+    interaction_component_description = (payload.get("description") or "").strip()
+    interaction_component_type = (payload.get("type") or "").strip()
+    interaction_component_subtype = (payload.get("subtype") or "").strip()
+    interaction_id = _coerce_int(payload.get("interaction_id"))
+    role_id = _coerce_int(payload.get("role_id"))
+    guard_id = _coerce_int(payload.get("guard_id"))
+    direction = (payload.get("direction") or "outbound").strip().lower()
+
+    if not interaction_component_name or not interaction_component_type or interaction_id is None:
+        return json_error("Component name, type, and interaction are required.", 400, action)
+    if direction not in _INTERACTION_COMPONENT_DIRECTIONS:
+        return json_error("Choose a valid direction for the interaction component.", 400, action)
+
     log_route_info(
         f"{action}:start",
-        interaction_id=payload.get("interaction_id"),
-        guard_id=payload.get("guard_id"),
-        role_id=payload.get("role_id"),
+        interaction_id=interaction_id,
+        guard_id=guard_id,
+        role_id=role_id,
     )
 
     db_provider = get_db_provider()
+    interaction_code, interaction_err, interaction = db_provider.select_from_interaction_table(interaction_id)
+    if interaction_code != 0:
+        return json_error(interaction_err or "Interaction not found.", 404, action)
+    if _coerce_int(interaction.get("workflow_id")) != workflow_id:
+        return json_error("That interaction does not belong to the active workflow.", 403, action)
+
+    if role_id is not None:
+        role_code, role_err, role = db_provider.select_from_role_table(role_id)
+        if role_code != 0:
+            return json_error(role_err or "Role not found.", 404, action)
+        if _coerce_int(role.get("workspace_id")) != workflow_id:
+            return json_error("That role does not belong to the active workflow.", 403, action)
+
+    if guard_id is not None:
+        guard_code, guard_err, guard = db_provider.select_from_guard_table(guard_id)
+        if guard_code != 0:
+            return json_error(guard_err or "Guard not found.", 404, action)
+        if _coerce_int(guard.get("workspace_id")) != workflow_id:
+            return json_error("That guard does not belong to the active workflow.", 403, action)
+
     code, err, new_id = db_provider.insert_into_interaction_component_table(
-        interaction_component_name=payload.get("name"),
-        interaction_component_description=payload.get("description"),
-        interaction_component_type=payload.get("type"),
-        interaction_component_subtype=payload.get("subtype"),
-        interaction_id=payload.get("interaction_id"),
-        guard_id=payload.get("guard_id"),
-        role_id=payload.get("role_id"),
-        direction=payload.get("direction"),
-        created_by=payload.get("user"),
+        interaction_component_name=interaction_component_name,
+        interaction_component_description=interaction_component_description,
+        interaction_component_type=interaction_component_type,
+        interaction_component_subtype=interaction_component_subtype,
+        interaction_id=interaction_id,
+        guard_id=guard_id,
+        role_id=role_id,
+        direction=direction,
+        created_by=session.get("username", "PDFA User"),
     )
-    if code == 0:
-        return json_success({"id": new_id, "status": "created"}, action, 201)
-    return json_error(err, 500, action)
+    if code != 0:
+        return json_error(err, 500, action)
+
+    component_id = _coerce_int(new_id)
+    if component_id is None:
+        return json_error("Unable to determine the created interaction component id.", 500, action)
+
+    code, err, component = db_provider.select_from_interaction_component_table(component_id)
+    if code != 0:
+        return json_error(err, 500, action)
+
+    enriched_component = _enriched_interaction_component(db_provider, component, workflow_id)
+    if enriched_component is None:
+        return json_error("Unable to render the created interaction component.", 500, action)
+    return json_success(enriched_component, action, 201)
 
 
 @bp.route("/api/interaction-components/<int:interaction_component_id>", methods=["PUT"])
 def update_interaction_component(interaction_component_id: int):
-    """Update an interaction component from a JSON payload and return its identifier."""
+    """Update an interaction component from a JSON payload and return the updated object."""
     action = "update_interaction_component"
+    if not _require_csrf():
+        return json_error("Invalid CSRF token.", 403, action)
+
     payload = get_json_payload()
+    workflow_id = _coerce_int(session.get("workflow_id"))
+    if workflow_id is None:
+        return json_error("Workflow context required.", 428, action)
+
+    interaction_component_name = (payload.get("name") or "").strip()
+    interaction_component_description = (payload.get("description") or "").strip()
+    interaction_component_type = (payload.get("type") or "").strip()
+    interaction_component_subtype = (payload.get("subtype") or "").strip()
+    interaction_id = _coerce_int(payload.get("interaction_id"))
+    role_id = _coerce_int(payload.get("role_id"))
+    guard_id = _coerce_int(payload.get("guard_id"))
+    direction = (payload.get("direction") or "outbound").strip().lower()
+
+    if not interaction_component_name or not interaction_component_type or interaction_id is None:
+        return json_error("Component name, type, and interaction are required.", 400, action)
+    if direction not in _INTERACTION_COMPONENT_DIRECTIONS:
+        return json_error("Choose a valid direction for the interaction component.", 400, action)
+
     log_route_info(
         f"{action}:start",
         interaction_component_id=interaction_component_id,
-        interaction_id=payload.get("interaction_id"),
+        interaction_id=interaction_id,
     )
 
     db_provider = get_db_provider()
+    component_code, component_err, current_component = db_provider.select_from_interaction_component_table(
+        interaction_component_id
+    )
+    if component_code != 0:
+        return json_error(component_err, 404, action)
+
+    component_workflow_id = _component_workflow_id(db_provider, current_component)
+    if component_workflow_id != workflow_id:
+        return json_error("That interaction component does not belong to the active workflow.", 403, action)
+
+    interaction_code, interaction_err, interaction = db_provider.select_from_interaction_table(interaction_id)
+    if interaction_code != 0:
+        return json_error(interaction_err or "Interaction not found.", 404, action)
+    if _coerce_int(interaction.get("workflow_id")) != workflow_id:
+        return json_error("That interaction does not belong to the active workflow.", 403, action)
+
+    if role_id is not None:
+        role_code, role_err, role = db_provider.select_from_role_table(role_id)
+        if role_code != 0:
+            return json_error(role_err or "Role not found.", 404, action)
+        if _coerce_int(role.get("workspace_id")) != workflow_id:
+            return json_error("That role does not belong to the active workflow.", 403, action)
+
+    if guard_id is not None:
+        guard_code, guard_err, guard = db_provider.select_from_guard_table(guard_id)
+        if guard_code != 0:
+            return json_error(guard_err or "Guard not found.", 404, action)
+        if _coerce_int(guard.get("workspace_id")) != workflow_id:
+            return json_error("That guard does not belong to the active workflow.", 403, action)
+
     code, err, updated_id = db_provider.update_interaction_component_table(
         interaction_component_id=interaction_component_id,
-        interaction_component_name=payload.get("name"),
-        interaction_component_description=payload.get("description"),
-        interaction_component_type=payload.get("type"),
-        interaction_component_subtype=payload.get("subtype"),
-        interaction_id=payload.get("interaction_id"),
-        guard_id=payload.get("guard_id"),
-        role_id=payload.get("role_id"),
-        direction=payload.get("direction"),
-        updated_by=payload.get("user"),
+        interaction_component_name=interaction_component_name,
+        interaction_component_description=interaction_component_description,
+        interaction_component_type=interaction_component_type,
+        interaction_component_subtype=interaction_component_subtype,
+        interaction_id=interaction_id,
+        guard_id=guard_id,
+        role_id=role_id,
+        direction=direction,
+        updated_by=session.get("username", "PDFA User"),
     )
-    if code == 0:
-        return json_success({"id": updated_id, "status": "updated"}, action)
-    return json_error(err, 500, action)
+    if code != 0:
+        return json_error(err, 500, action)
+
+    component_id = _coerce_int(updated_id, interaction_component_id)
+    code, err, component = db_provider.select_from_interaction_component_table(component_id)
+    if code != 0:
+        return json_error(err, 500, action)
+
+    enriched_component = _enriched_interaction_component(db_provider, component, workflow_id)
+    if enriched_component is None:
+        return json_error("Unable to render the updated interaction component.", 500, action)
+    return json_success(enriched_component, action)
 
 
 @bp.route("/api/interaction-components/<int:interaction_component_id>", methods=["DELETE"])

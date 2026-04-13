@@ -854,3 +854,541 @@ def test_interaction_component_create_rejects_missing_csrf_token(client, flask_a
     assert not [
         component for component in components if component["interaction_component_name"] == "Rejected Component"
     ]
+
+
+def test_workflow_api_create_requires_csrf_token(client):
+    _login(client)
+
+    response = client.post(
+        "/api/workflows",
+        json={
+            "name": "AJAX Workflow",
+            "description": "Created without csrf",
+            "type": "Operations",
+            "subtype": "Primary",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.get_json() == {"error": "Invalid CSRF token."}
+
+
+def test_workflow_api_create_returns_full_object(client, flask_app):
+    _login(client)
+    csrf_token = _session_csrf(client)
+
+    response = client.post(
+        "/api/workflows",
+        json={
+            "name": "AJAX Create Workflow",
+            "description": "Created through JSON API",
+            "type": "Operations",
+            "subtype": "Primary",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 201
+    assert payload["workflow_id"] is not None
+    assert payload["workflow_name"] == "AJAX Create Workflow"
+    assert payload["workflow_description"] == "Created through JSON API"
+    assert payload["workflow_type"] == "Operations"
+    assert payload["workflow_subtype"] == "Primary"
+    assert payload["created_by"] == "Test User"
+
+    verification_dao = _build_test_dao(flask_app)
+    _, _, workflow = verification_dao.select_from_workflow_table(payload["workflow_id"])
+    verification_dao.close()
+
+    assert workflow["workflow_name"] == "AJAX Create Workflow"
+
+
+def test_workflow_api_update_returns_full_object_and_refreshes_session_context(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Original AJAX Workflow",
+        "Original description",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.put(
+        f"/api/workflows/{workflow_id}",
+        json={
+            "name": "Updated AJAX Workflow",
+            "description": "Updated through JSON API",
+            "type": "Operations",
+            "subtype": "Secondary",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["workflow_id"] == workflow_id
+    assert payload["workflow_name"] == "Updated AJAX Workflow"
+    assert payload["workflow_description"] == "Updated through JSON API"
+    assert payload["workflow_type"] == "Operations"
+    assert payload["workflow_subtype"] == "Secondary"
+
+    with client.session_transaction() as session_state:
+        assert session_state["workflow_name"] == "Updated AJAX Workflow"
+
+
+def test_role_api_create_requires_csrf_token(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Role API CSRF Workflow",
+        "Workflow for role API csrf validation",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.post(
+        "/api/roles",
+        json={
+            "name": "AJAX Role",
+            "description": "Created without csrf",
+            "type": "Human",
+            "subtype": "Primary",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.get_json() == {"error": "Invalid CSRF token."}
+
+
+def test_role_api_create_returns_full_object_in_active_workflow(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Role API Create Workflow",
+        "Workflow for role API create",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.post(
+        "/api/roles",
+        json={
+            "name": "AJAX Create Role",
+            "description": "Created through role API",
+            "type": "Human",
+            "subtype": "Secondary",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 201
+    assert payload["role_id"] is not None
+    assert payload["workspace_id"] == workflow_id
+    assert payload["role_name"] == "AJAX Create Role"
+    assert payload["role_description"] == "Created through role API"
+    assert payload["role_type"] == "Human"
+    assert payload["role_subtype"] == "Secondary"
+    assert payload["created_by"] == "Test User"
+
+
+def test_role_api_update_returns_full_object(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Role API Update Workflow",
+        "Workflow for role API update",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    _, _, role_id = dao.insert_into_role_table(
+        workflow_id,
+        "Original AJAX Role",
+        "Original role description",
+        "Human",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.put(
+        f"/api/roles/{role_id}",
+        json={
+            "name": "Updated AJAX Role",
+            "description": "Updated through role API",
+            "type": "Human",
+            "subtype": "Secondary",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["role_id"] == role_id
+    assert payload["workspace_id"] == workflow_id
+    assert payload["role_name"] == "Updated AJAX Role"
+    assert payload["role_description"] == "Updated through role API"
+    assert payload["role_type"] == "Human"
+    assert payload["role_subtype"] == "Secondary"
+
+
+def test_guard_api_create_requires_csrf_token(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Guard API CSRF Workflow",
+        "Workflow for guard API csrf validation",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.post(
+        "/api/guards",
+        json={
+            "name": "AJAX Guard",
+            "description": "Created without csrf",
+            "type": "Policy",
+            "subtype": "Default",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.get_json() == {"error": "Invalid CSRF token."}
+
+
+def test_guard_api_create_returns_full_object_in_active_workflow(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Guard API Create Workflow",
+        "Workflow for guard API create",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.post(
+        "/api/guards",
+        json={
+            "name": "AJAX Create Guard",
+            "description": "Created through guard API",
+            "type": "Policy",
+            "subtype": "Default",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 201
+    assert payload["guard_id"] is not None
+    assert payload["workspace_id"] == workflow_id
+    assert payload["guard_name"] == "AJAX Create Guard"
+    assert payload["guard_description"] == "Created through guard API"
+    assert payload["guard_type"] == "Policy"
+    assert payload["guard_subtype"] == "Default"
+    assert payload["created_by"] == "Test User"
+
+
+def test_guard_api_update_returns_full_object(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Guard API Update Workflow",
+        "Workflow for guard API update",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    _, _, guard_id = dao.insert_into_guard_table(
+        workflow_id,
+        "Original AJAX Guard",
+        "Original guard description",
+        "Policy",
+        "Default",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.put(
+        f"/api/guards/{guard_id}",
+        json={
+            "name": "Updated AJAX Guard",
+            "description": "Updated through guard API",
+            "type": "Policy",
+            "subtype": "Strict",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["guard_id"] == guard_id
+    assert payload["workspace_id"] == workflow_id
+    assert payload["guard_name"] == "Updated AJAX Guard"
+    assert payload["guard_description"] == "Updated through guard API"
+    assert payload["guard_type"] == "Policy"
+    assert payload["guard_subtype"] == "Strict"
+
+
+def test_interaction_api_create_requires_csrf_token(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Interaction API CSRF Workflow",
+        "Workflow for interaction API csrf validation",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.post(
+        "/api/interactions",
+        json={
+            "name": "AJAX Interaction",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.get_json() == {"error": "Invalid CSRF token."}
+
+
+def test_interaction_api_create_returns_full_object_in_active_workflow(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Interaction API Create Workflow",
+        "Workflow for interaction API create",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.post(
+        "/api/interactions",
+        json={
+            "name": "AJAX Create Interaction",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 201
+    assert payload["interaction_id"] is not None
+    assert payload["workflow_id"] == workflow_id
+    assert payload["interaction_name"] == "AJAX Create Interaction"
+    assert payload["created_by"] == "Test User"
+
+
+def test_interaction_api_update_returns_full_object(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Interaction API Update Workflow",
+        "Workflow for interaction API update",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    _, _, interaction_id = dao.insert_into_interaction_table(
+        workflow_id,
+        "Original AJAX Interaction",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.put(
+        f"/api/interactions/{interaction_id}",
+        json={
+            "name": "Updated AJAX Interaction",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["interaction_id"] == interaction_id
+    assert payload["workflow_id"] == workflow_id
+    assert payload["interaction_name"] == "Updated AJAX Interaction"
+
+
+def test_interaction_component_api_create_requires_csrf_token(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Component API CSRF Workflow",
+        "Workflow for component api csrf validation",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    _, _, interaction_id = dao.insert_into_interaction_table(workflow_id, "Component Interaction", "tester")
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.post(
+        "/api/interaction-components",
+        json={
+            "name": "AJAX Component",
+            "description": "Created without csrf",
+            "type": "Notification",
+            "subtype": "Email",
+            "interaction_id": interaction_id,
+            "direction": "outbound",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.get_json() == {"error": "Invalid CSRF token."}
+
+
+def test_interaction_component_api_create_returns_enriched_object(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Component API Create Workflow",
+        "Workflow for component api create",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    _, _, role_id = dao.insert_into_role_table(workflow_id, "Component Reviewer", "", "Human", "Primary", "tester")
+    _, _, guard_id = dao.insert_into_guard_table(workflow_id, "Component Guard", "", "Policy", "Default", "tester")
+    _, _, interaction_id = dao.insert_into_interaction_table(workflow_id, "Component Interaction", "tester")
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.post(
+        "/api/interaction-components",
+        json={
+            "name": "AJAX Create Component",
+            "description": "Created through component API",
+            "type": "Notification",
+            "subtype": "Email",
+            "interaction_id": interaction_id,
+            "role_id": role_id,
+            "guard_id": guard_id,
+            "direction": "outbound",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 201
+    assert payload["interaction_component_id"] is not None
+    assert payload["workflow_id"] == workflow_id
+    assert payload["interaction_component_name"] == "AJAX Create Component"
+    assert payload["interaction_id"] == interaction_id
+    assert payload["role_id"] == role_id
+    assert payload["guard_id"] == guard_id
+    assert payload["interaction_name"] == "Component Interaction"
+    assert payload["role_name"] == "Component Reviewer"
+    assert payload["guard_name"] == "Component Guard"
+    assert payload["direction_label"] == "Outbound"
+
+
+def test_interaction_component_api_update_returns_enriched_object(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Component API Update Workflow",
+        "Workflow for component api update",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    _, _, role_id = dao.insert_into_role_table(workflow_id, "Component Reviewer", "", "Human", "Primary", "tester")
+    _, _, guard_id = dao.insert_into_guard_table(workflow_id, "Component Guard", "", "Policy", "Default", "tester")
+    _, _, interaction_id = dao.insert_into_interaction_table(workflow_id, "Component Interaction", "tester")
+    _, _, component_id = dao.insert_into_interaction_component_table(
+        "Original Component",
+        "Original description",
+        "Notification",
+        "Email",
+        interaction_id,
+        guard_id,
+        role_id,
+        "outbound",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+    csrf_token = _session_csrf(client)
+
+    response = client.put(
+        f"/api/interaction-components/{component_id}",
+        json={
+            "name": "Updated Component",
+            "description": "Updated through component API",
+            "type": "Notification",
+            "subtype": "SMS",
+            "interaction_id": interaction_id,
+            "role_id": role_id,
+            "guard_id": guard_id,
+            "direction": "bidirectional",
+            "csrf_token": csrf_token,
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["interaction_component_id"] == component_id
+    assert payload["workflow_id"] == workflow_id
+    assert payload["interaction_component_name"] == "Updated Component"
+    assert payload["interaction_component_description"] == "Updated through component API"
+    assert payload["interaction_component_subtype"] == "SMS"
+    assert payload["direction"] == "bidirectional"
+    assert payload["direction_label"] == "Bidirectional"
