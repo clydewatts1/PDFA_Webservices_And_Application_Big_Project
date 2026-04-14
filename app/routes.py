@@ -204,6 +204,68 @@ def _enriched_interaction_component(
     return enriched_rows[0]
 
 
+def _dot_escape(value: str | None) -> str:
+    """Escape a string for safe use as a Graphviz node label."""
+    return str(value or "").replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _build_workflow_dot(
+    components: list[dict],
+    interactions: dict[int, str],
+    roles: dict[int, str],
+) -> str:
+    """Build a Graphviz DOT string representing the workflow interaction-component graph."""
+    lines = [
+        "digraph workflow {",
+        '    graph [bgcolor="#ffffff" pad="0.4" rankdir=LR]',
+        '    node [fontname="Arial" fontsize=11]',
+        '    edge [fontsize=9 color="#5f6368"]',
+        "",
+    ]
+
+    seen_interactions: set[int] = set()
+    seen_roles: set[int] = set()
+
+    for component in components:
+        interaction_id = _coerce_int(component.get("interaction_id"))
+        role_id = _coerce_int(component.get("role_id"))
+
+        if interaction_id is not None and interaction_id not in seen_interactions:
+            seen_interactions.add(interaction_id)
+            label = _dot_escape(interactions.get(interaction_id, f"Interaction {interaction_id}"))
+            lines.append(
+                f'    interaction_{interaction_id} [label="{label}" shape=ellipse'
+                ' style=filled fillcolor="#E8F0FE" color="#1a73e8" fontcolor="#1a73e8"]'
+            )
+
+        if role_id is not None and role_id not in seen_roles:
+            seen_roles.add(role_id)
+            label = _dot_escape(roles.get(role_id, f"Role {role_id}"))
+            lines.append(
+                f'    role_{role_id} [label="{label}" shape=box'
+                ' style="filled,rounded" fillcolor="#FEF3E2" color="#e37400" fontcolor="#b06000"]'
+            )
+
+    lines.append("")
+
+    for component in components:
+        interaction_id = _coerce_int(component.get("interaction_id"))
+        role_id = _coerce_int(component.get("role_id"))
+        if interaction_id is None or role_id is None:
+            continue
+        direction = (component.get("direction") or "outbound").lower()
+        if direction == "outbound":
+            lines.append(f"    role_{role_id} -> interaction_{interaction_id}")
+        elif direction == "inbound":
+            lines.append(f"    interaction_{interaction_id} -> role_{role_id}")
+        elif direction == "bidirectional":
+            lines.append(f"    role_{role_id} -> interaction_{interaction_id}")
+            lines.append(f"    interaction_{interaction_id} -> role_{role_id}")
+
+    lines.append("}")
+    return "\n".join(lines)
+
+
 def _build_initials(username: str | None) -> str:
     """Return up to two initials for the current username."""
     if not username:
@@ -1183,6 +1245,41 @@ def get_workflow(workflow_id: int):
     if code == 0:
         return json_success(data, action)
     return json_error(err, 404, action)
+
+
+@bp.route("/api/workflows/visualize", methods=["GET"])
+def visualize_workflow():
+    """Return a Graphviz DOT string for the active workflow's interaction-component graph."""
+    action = "visualize_workflow"
+    workflow = _current_workflow_or_none()
+    if not workflow:
+        return json_error("No active workflow.", 428, action)
+
+    workflow_id = _coerce_int(workflow.get("workflow_id"))
+    db_provider = get_db_provider()
+
+    int_code, _, all_interactions = db_provider.select_all_from_interaction_table()
+    role_code, _, all_roles = db_provider.select_all_from_role_table()
+    comp_code, comp_err, all_components = db_provider.select_all_from_interaction_component_table()
+
+    if comp_code != 0:
+        return json_error(comp_err, 500, action)
+
+    scoped_interactions = _workflow_scoped_rows(_safe_collection(int_code, all_interactions), workflow_id)
+    scoped_interaction_ids = {r["interaction_id"] for r in scoped_interactions}
+    interactions = {r["interaction_id"]: r["interaction_name"] for r in scoped_interactions}
+    roles = {
+        r["role_id"]: r["role_name"]
+        for r in _workflow_scoped_rows(_safe_collection(role_code, all_roles), workflow_id)
+    }
+
+    components = [
+        c for c in _safe_collection(comp_code, all_components)
+        if _coerce_int(c.get("interaction_id")) in scoped_interaction_ids
+    ]
+
+    dot = _build_workflow_dot(components, interactions, roles)
+    return json_success({"dot": dot}, action)
 
 
 @bp.route("/api/workflows", methods=["POST"])

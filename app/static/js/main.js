@@ -1118,6 +1118,40 @@ function bindDeleteConfirmations() {
     });
 }
 
+async function renderWorkflowGraph() {
+    const graphTarget = document.getElementById("graph-target");
+    if (!graphTarget) {
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/workflows/visualize", {
+            headers: { "Accept": "application/json" },
+        });
+        if (!response.ok) {
+            graphTarget.innerHTML = '<p class="text-sm text-muted">Graph unavailable.</p>';
+            return;
+        }
+
+        const data = await response.json().catch(() => ({}));
+        const dot = (typeof data.dot === "string" ? data.dot : data?.data?.dot) || "";
+        if (!dot.trim()) {
+            graphTarget.innerHTML = '<p class="text-sm text-muted">No components to visualize yet.</p>';
+            return;
+        }
+
+        if (!window.d3 || typeof d3.select("#graph-target").graphviz !== "function") {
+            graphTarget.innerHTML = '<p class="text-sm text-muted">Graph libraries failed to load.</p>';
+            return;
+        }
+
+        graphTarget.innerHTML = "";
+        d3.select("#graph-target").graphviz({ useWorker: false }).fit(true).renderDot(dot);
+    } catch (_error) {
+        graphTarget.innerHTML = '<p class="text-sm text-muted">Unable to render workflow graph.</p>';
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     hideToasts();
     bindDrawerTriggers();
@@ -1127,6 +1161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bindGuardFormSubmission();
     bindInteractionFormSubmission();
     bindInteractionComponentFormSubmission();
+    renderWorkflowGraph();
     setSidebarOpen(window.innerWidth >= 768);
 
     if (sidebarToggle) {

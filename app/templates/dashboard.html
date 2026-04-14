@@ -155,6 +155,12 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                        <div id="workflow-viz-container" class="mt-6 rounded-google border border-divider bg-surface p-6">
+                            <p class="mb-4 text-xs font-medium uppercase tracking-[0.16em] text-muted">Workflow Graph</p>
+                            <div id="graph-target" class="flex min-h-[200px] items-center justify-center overflow-x-auto">
+                                <p class="text-sm text-muted">Loading visualization…</p>
+                            </div>
+                        </div>
                     {% elif active_section == 'roles' %}
                         <table id="roles-table" class="min-w-full text-left text-[14px]">
                             <thead class="border-b border-divider bg-canvas text-xs uppercase tracking-[0.16em] text-muted">
