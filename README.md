@@ -5,7 +5,7 @@ __Author:__ Clyde Watts
 __Course:__ 25-26: 8640 -- WEB SERVICES AND APPLICATIONS  
 
 ## Overview
-The Flask web tier provides a workflow configuration dashboard for managing workflows, roles, guards, interactions, and interaction components through a DAO-backed service layer.
+The Flask web tier provides a Colour Petri Net workflow configuration dashboard for managing workflows, roles, guards, interactions, and interaction components through a DAO-backed service layer.
 This is to support a colour petri net-based workflow engine, which is the focus of the project. The web tier is designed to be modular and extensible, allowing for future integration with the workflow engine and other components.
 
 ## Live Application

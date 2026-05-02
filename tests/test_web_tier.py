@@ -1392,3 +1392,75 @@ def test_interaction_component_api_update_returns_enriched_object(client, flask_
     assert payload["interaction_component_subtype"] == "SMS"
     assert payload["direction"] == "bidirectional"
     assert payload["direction_label"] == "Bidirectional"
+
+
+def test_visualize_workflow_includes_guard_relationship_edges(client, flask_app):
+    dao = _build_test_dao(flask_app)
+    _, _, workflow_id = dao.insert_into_workflow_table(
+        "Visualization Workflow",
+        "Workflow for graph visualization",
+        "Operations",
+        "Primary",
+        "tester",
+    )
+    _, _, inbound_guard_id = dao.insert_into_guard_table(
+        workflow_id,
+        "Inbound Guard",
+        "",
+        "Policy",
+        "Default",
+        "tester",
+    )
+    _, _, outbound_guard_id = dao.insert_into_guard_table(
+        workflow_id,
+        "Outbound Guard",
+        "",
+        "Policy",
+        "Default",
+        "tester",
+    )
+    _, _, inbound_interaction_id = dao.insert_into_interaction_table(
+        workflow_id,
+        "Inbound Interaction",
+        "tester",
+    )
+    _, _, outbound_interaction_id = dao.insert_into_interaction_table(
+        workflow_id,
+        "Outbound Interaction",
+        "tester",
+    )
+    dao.insert_into_interaction_component_table(
+        "Inbound Guard Edge",
+        "",
+        "Transition",
+        "",
+        inbound_interaction_id,
+        inbound_guard_id,
+        None,
+        "inbound",
+        "tester",
+    )
+    dao.insert_into_interaction_component_table(
+        "Outbound Guard Edge",
+        "",
+        "Transition",
+        "",
+        outbound_interaction_id,
+        outbound_guard_id,
+        None,
+        "outbound",
+        "tester",
+    )
+    dao.close()
+
+    _login(client)
+    _set_context(client, workflow_id)
+
+    response = client.get("/api/workflows/visualize")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    dot = payload["dot"]
+    assert 'guard_' in dot
+    assert f'interaction_{inbound_interaction_id} -> guard_{inbound_guard_id}' in dot
+    assert f'guard_{outbound_guard_id} -> interaction_{outbound_interaction_id}' in dot

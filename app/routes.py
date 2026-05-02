@@ -212,6 +212,7 @@ def _dot_escape(value: str | None) -> str:
 def _build_workflow_dot(
     components: list[dict],
     interactions: dict[int, str],
+    guards: dict[int, str],
     roles: dict[int, str],
 ) -> str:
     """Build a Graphviz DOT string representing the workflow interaction-component graph."""
@@ -224,10 +225,12 @@ def _build_workflow_dot(
     ]
 
     seen_interactions: set[int] = set()
+    seen_guards: set[int] = set()
     seen_roles: set[int] = set()
 
     for component in components:
         interaction_id = _coerce_int(component.get("interaction_id"))
+        guard_id = _coerce_int(component.get("guard_id"))
         role_id = _coerce_int(component.get("role_id"))
 
         if interaction_id is not None and interaction_id not in seen_interactions:
@@ -236,6 +239,14 @@ def _build_workflow_dot(
             lines.append(
                 f'    interaction_{interaction_id} [label="{label}" shape=ellipse'
                 ' style=filled fillcolor="#E8F0FE" color="#1a73e8" fontcolor="#1a73e8"]'
+            )
+
+        if guard_id is not None and guard_id not in seen_guards:
+            seen_guards.add(guard_id)
+            label = _dot_escape(guards.get(guard_id, f"Guard {guard_id}"))
+            lines.append(
+                f'    guard_{guard_id} [label="{label}" shape=diamond'
+                ' style=filled fillcolor="#E6F4EA" color="#188038" fontcolor="#188038"]'
             )
 
         if role_id is not None and role_id not in seen_roles:
@@ -250,17 +261,28 @@ def _build_workflow_dot(
 
     for component in components:
         interaction_id = _coerce_int(component.get("interaction_id"))
+        guard_id = _coerce_int(component.get("guard_id"))
         role_id = _coerce_int(component.get("role_id"))
-        if interaction_id is None or role_id is None:
+        if interaction_id is None:
             continue
         direction = (component.get("direction") or "outbound").lower()
-        if direction == "outbound":
-            lines.append(f"    role_{role_id} -> interaction_{interaction_id}")
-        elif direction == "inbound":
-            lines.append(f"    interaction_{interaction_id} -> role_{role_id}")
-        elif direction == "bidirectional":
-            lines.append(f"    role_{role_id} -> interaction_{interaction_id}")
-            lines.append(f"    interaction_{interaction_id} -> role_{role_id}")
+        if role_id is not None:
+            if direction == "outbound":
+                lines.append(f"    role_{role_id} -> interaction_{interaction_id}")
+            elif direction == "inbound":
+                lines.append(f"    interaction_{interaction_id} -> role_{role_id}")
+            elif direction == "bidirectional":
+                lines.append(f"    role_{role_id} -> interaction_{interaction_id}")
+                lines.append(f"    interaction_{interaction_id} -> role_{role_id}")
+
+        if guard_id is not None:
+            if direction == "outbound":
+                lines.append(f"    guard_{guard_id} -> interaction_{interaction_id}")
+            elif direction == "inbound":
+                lines.append(f"    interaction_{interaction_id} -> guard_{guard_id}")
+            elif direction == "bidirectional":
+                lines.append(f"    guard_{guard_id} -> interaction_{interaction_id}")
+                lines.append(f"    interaction_{interaction_id} -> guard_{guard_id}")
 
     lines.append("}")
     return "\n".join(lines)
@@ -1259,6 +1281,7 @@ def visualize_workflow():
     db_provider = get_db_provider()
 
     int_code, _, all_interactions = db_provider.select_all_from_interaction_table()
+    guard_code, _, all_guards = db_provider.select_all_from_guard_table()
     role_code, _, all_roles = db_provider.select_all_from_role_table()
     comp_code, comp_err, all_components = db_provider.select_all_from_interaction_component_table()
 
@@ -1268,6 +1291,10 @@ def visualize_workflow():
     scoped_interactions = _workflow_scoped_rows(_safe_collection(int_code, all_interactions), workflow_id)
     scoped_interaction_ids = {r["interaction_id"] for r in scoped_interactions}
     interactions = {r["interaction_id"]: r["interaction_name"] for r in scoped_interactions}
+    guards = {
+        r["guard_id"]: r["guard_name"]
+        for r in _workflow_scoped_rows(_safe_collection(guard_code, all_guards), workflow_id)
+    }
     roles = {
         r["role_id"]: r["role_name"]
         for r in _workflow_scoped_rows(_safe_collection(role_code, all_roles), workflow_id)
@@ -1278,7 +1305,7 @@ def visualize_workflow():
         if _coerce_int(c.get("interaction_id")) in scoped_interaction_ids
     ]
 
-    dot = _build_workflow_dot(components, interactions, roles)
+    dot = _build_workflow_dot(components, interactions, guards, roles)
     return json_success({"dot": dot}, action)
 
 
